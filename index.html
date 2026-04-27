@@ -336,6 +336,16 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ══════════════════════════════════════════════════════
+//  CONFIGURACIÓN
+// ══════════════════════════════════════════════════════
+const GIST_ID    = '7ad53fae83a8c727252efac67f6adbce';
+const GIST_TOKEN = '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';
+const GIST_FILE  = 'liga-tenis.json';
+const GIST_API   = 'https://api.github.com/gists/' + GIST_ID;
+const G_HEADERS  = { Authorization:'token '+GIST_TOKEN, Accept:'application/vnd.github.v3+json', 'Content-Type':'application/json' };
+
+
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
 const ADMIN_PASSWORD = 'liga2025';
 const MATCH_DUR_DEFAULT = 90;
