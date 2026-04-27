@@ -337,154 +337,121 @@
 
 <script>
 // ══════════════════════════════════════════════════════
-//  CONFIGURACIÓN
+//  CONFIGURACIÓN SUPABASE
 // ══════════════════════════════════════════════════════
-const GIST_ID    = '7ad53fae83a8c727252efac67f6adbce';
-const GIST_TOKEN = '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';
-const GIST_FILE  = 'liga-tenis.json';
-const GIST_API   = 'https://api.github.com/gists/' + GIST_ID;
-const G_HEADERS  = { Authorization:'token '+GIST_TOKEN, Accept:'application/vnd.github.v3+json', 'Content-Type':'application/json' };
-
+const SB_URL  = 'https://yxtjgbbaizojnvzzudmn.supabase.co';
+const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4dGpnYmJhaXpvam52enp1ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTY0MjksImV4cCI6MjA5Mjg5MjQyOX0.QDXFfajRX9gx3n05N6YDDcFlv5qlGn_SRFKAchEgses';
+const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+const SB_ROW  = SB_URL + '/rest/v1/liga?id=eq.estado';
 
 // ─── CONSTANTES ───────────────────────────────────────────────────────────────
-const ADMIN_PASSWORD = 'liga2025';
+const ADMIN_PASSWORD    = 'liga2025';
 const MATCH_DUR_DEFAULT = 90;
+const POLL_MS           = 20000;
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 let S = {
-  jornadas: [],   // { id, nombre, matches:[{p1,p2}] }
-  slots:    [],   // { id, jornadaId, date, time, duration, court, reservedBy, rival, reservedAt }
-  currentPlayer: null,
-  currentRival:  null,
-  adminLoggedIn: false,
-  pendingSlotId: null,
-  activeResumenJornada: null,
-  saving: false,
+  jornadas: [], slots: [],
+  currentPlayer: null, currentRival: null,
+  adminLoggedIn: false, pendingSlotId: null,
+  activeResumenJornada: null, saving: false,
 };
 
-async function save() {
-  setSyncState('loading','Guardando...');
-  S.saving = true;
+// ── SUPABASE ────────────────────────────────────────────
+async function loadFromDB() {
+  setSyncState('loading', 'Sincronizando...');
   try {
-    const r = await fetch(GIST_API, { method:'PATCH', headers:G_HEADERS,
-      body: JSON.stringify({ files:{ [GIST_FILE]:{ content: JSON.stringify({ jornadas:S.jornadas, slots:S.slots }) } } }) });
+    const r = await fetch(SB_ROW + '&t=' + Date.now(), { headers: SB_HEADERS });
     if (!r.ok) throw new Error(r.status);
-    setSyncState('ok','Guardado ✓');
-    S.saving = false; return true;
-  } catch(e) { setSyncState('err','Error al guardar'); S.saving = false; showToast('⚠️ Error al guardar. Reintenta.'); return false; }
+    const rows = await r.json();
+    if (!rows.length) throw new Error('no rows');
+    const d = rows[0].data;
+    S.jornadas = d.jornadas || []; S.slots = d.slots || [];
+    setSyncState('ok', 'Conectado'); return true;
+  } catch(e) { setSyncState('err', 'Sin conexión'); return false; }
 }
 
-async function loadFromGist() {
-  setSyncState('loading','Sincronizando...');
+async function save() {
+  S.saving = true;
+  setSyncState('loading', 'Guardando...');
   try {
-    const r = await fetch(GIST_API + '?t=' + Date.now(), { headers: G_HEADERS });
+    const body = JSON.stringify({ data: { jornadas: S.jornadas, slots: S.slots } });
+    const r = await fetch(SB_ROW, { method: 'PATCH', headers: SB_HEADERS, body });
     if (!r.ok) throw new Error(r.status);
-    const g = await r.json();
-    const d = JSON.parse(g.files[GIST_FILE]?.content || '{"jornadas":[],"slots":[]}');
-    S.jornadas = d.jornadas || []; S.slots = d.slots || [];
-    setSyncState('ok','Conectado'); return true;
-  } catch(e) { setSyncState('err','Sin conexión'); return false; }
+    setSyncState('ok', 'Guardado ✓'); S.saving = false; return true;
+  } catch(e) { setSyncState('err', 'Error al guardar'); S.saving = false; showToast('⚠️ Error al guardar. Reintenta.'); return false; }
 }
 
 function setSyncState(state, label) {
   const dot = document.getElementById('syncDot');
   const lbl = document.getElementById('syncLabel');
-  if(dot) dot.className = 'sync-dot ' + state;
-  if(lbl) lbl.textContent = label;
+  if (dot) dot.className = 'sync-dot ' + state;
+  if (lbl) lbl.textContent = label;
 }
 
-// Init: load from Gist then start polling
+// ── INIT ────────────────────────────────────────────────
 async function initApp() {
   document.getElementById('loadingOverlay').classList.remove('hidden');
-  await loadFromGist();
+  await loadFromDB();
   document.getElementById('loadingOverlay').classList.add('hidden');
   populateJugadorSelect();
   setInterval(async () => {
     if (S.saving) return;
-    if (!await loadFromGist()) return;
+    if (!await loadFromDB()) return;
     populateJugadorSelect();
     if (S.currentPlayer) renderSlots();
     if (S.adminLoggedIn) { renderAdminSlots(); renderAdminJornadas(); renderResumen(); }
-  }, 20000);
+  }, POLL_MS);
 }
 
-// ─── TABS ─────────────────────────────────────────────────────────────────────
-function switchTab(tab) {
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['jugador','admin'][i] === tab));
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+// ── TABS ────────────────────────────────────────────────
+function switchTab(t) {
+  document.querySelectorAll('.tab').forEach((x,i) => x.classList.toggle('active', ['jugador','admin'][i] === t));
+  document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
 }
-function switchSubtab(sub) {
-  document.querySelectorAll('.subtab').forEach((t,i) => t.classList.toggle('active', ['huecos','partidos','resumen'][i] === sub));
-  document.querySelectorAll('.admin-sub').forEach(s => s.classList.remove('active'));
-  document.getElementById('sub-' + sub).classList.add('active');
-  if (sub === 'resumen') renderResumen();
-  if (sub === 'huecos')  renderAdminSlots();
-  if (sub === 'partidos') renderAdminJornadas();
+function switchSubtab(t) {
+  document.querySelectorAll('.subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','partidos','resumen'][i] === t));
+  document.querySelectorAll('.admin-sub').forEach(x => x.classList.remove('active'));
+  document.getElementById('sub-' + t).classList.add('active');
+  if (t === 'resumen')  renderResumen();
+  if (t === 'huecos')   renderAdminSlots();
+  if (t === 'partidos') renderAdminJornadas();
 }
 
-// ─── JUGADOR LOGIN ────────────────────────────────────────────────────────────
+// ── JUGADOR ─────────────────────────────────────────────
 function getAllPlayers() {
-  const set = new Set();
-  S.jornadas.forEach(j => j.matches.forEach(m => { set.add(m.p1); set.add(m.p2); }));
-  return [...set].sort();
+  const s = new Set();
+  S.jornadas.forEach(j => j.matches.forEach(m => { s.add(m.p1); s.add(m.p2); }));
+  return [...s].sort((a,b) => a.localeCompare(b, 'es'));
 }
-
 function populateJugadorSelect() {
-  const sel = document.getElementById('selJugador');
-  const players = getAllPlayers();
+  const sel = document.getElementById('selJugador'), cur = sel.value;
   sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
-  players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+  getAllPlayers().forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; if (p === cur) o.selected = true; sel.appendChild(o); });
 }
-
 function onSelectJugador() {
   const jugador = document.getElementById('selJugador').value;
-  const rivalSel = document.getElementById('selRival');
-  rivalSel.innerHTML = '';
-  if (!jugador) { rivalSel.innerHTML = '<option value="">— Selecciona primero tu nombre —</option>'; rivalSel.disabled = true; return; }
-
-  // Find all rivals for this player across all jornadas
-  const rivals = [];
-  S.jornadas.forEach(j => j.matches.forEach(m => {
-    if (m.p1 === jugador) rivals.push(m.p2);
-    if (m.p2 === jugador) rivals.push(m.p1);
-  }));
-  const uniqueRivals = [...new Set(rivals)];
-
-  if (uniqueRivals.length === 0) {
-    rivalSel.innerHTML = '<option value="">Sin rival asignado</option>';
-    rivalSel.disabled = true;
-    return;
-  }
-  rivalSel.disabled = false;
-  if (uniqueRivals.length === 1) {
-    rivalSel.innerHTML = `<option value="${uniqueRivals[0]}">${uniqueRivals[0]}</option>`;
-  } else {
-    rivalSel.innerHTML = '<option value="">— Selecciona rival —</option>';
-    uniqueRivals.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; rivalSel.appendChild(o); });
-  }
+  const rs = document.getElementById('selRival');
+  rs.innerHTML = ''; rs.disabled = true;
+  if (!jugador) { rs.innerHTML = '<option value="">— Selecciona primero tu nombre —</option>'; return; }
+  const rivals = [...new Set(S.jornadas.flatMap(j => j.matches.filter(m => m.p1 === jugador || m.p2 === jugador).map(m => m.p1 === jugador ? m.p2 : m.p1)))].sort((a,b) => a.localeCompare(b,'es'));
+  if (!rivals.length) { rs.innerHTML = '<option value="">Sin rival asignado</option>'; return; }
+  rs.disabled = false;
+  if (rivals.length === 1) { rs.innerHTML = `<option value="${rivals[0]}">${rivals[0]}</option>`; }
+  else { rs.innerHTML = '<option value="">— Selecciona rival —</option>'; rivals.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; rs.appendChild(o); }); }
 }
-
 function loginJugador() {
-  const nombre = document.getElementById('selJugador').value;
-  const rival  = document.getElementById('selRival').value;
-  if (!nombre) { showToast('Selecciona tu nombre'); return; }
-  if (!rival)  { showToast('Selecciona tu rival'); return; }
-
-  // Check this matchup exists
-  const valid = S.jornadas.some(j => j.matches.some(m =>
-    (m.p1 === nombre && m.p2 === rival) || (m.p2 === nombre && m.p1 === rival)
-  ));
-  if (!valid) { showToast('Ese enfrentamiento no está registrado'); return; }
-
-  S.currentPlayer = nombre;
-  S.currentRival  = rival;
+  const n = document.getElementById('selJugador').value, r = document.getElementById('selRival').value;
+  if (!n) { showToast('Selecciona tu nombre'); return; }
+  if (!r) { showToast('Selecciona tu rival'); return; }
+  if (!S.jornadas.some(j => j.matches.some(m => (m.p1===n&&m.p2===r)||(m.p2===n&&m.p1===r)))) { showToast('Enfrentamiento no registrado'); return; }
+  S.currentPlayer = n; S.currentRival = r;
   document.getElementById('jugadorLogin').style.display = 'none';
   document.getElementById('jugadorHuecos').style.display = 'block';
-  document.getElementById('jugadorBienvenida').textContent = 'Hola, ' + nombre.split(' ')[0];
+  document.getElementById('jugadorBienvenida').textContent = 'Hola, ' + n.split(' ')[0];
   renderSlots();
 }
-
 function logoutJugador() {
   S.currentPlayer = null; S.currentRival = null;
   document.getElementById('jugadorLogin').style.display = 'block';
@@ -494,17 +461,14 @@ function logoutJugador() {
   document.getElementById('selRival').disabled = true;
 }
 
-// ─── ADMIN LOGIN ──────────────────────────────────────────────────────────────
+// ── ADMIN ───────────────────────────────────────────────
 function loginAdmin() {
-  if (document.getElementById('inputAdminPass').value === ADMIN_PASSWORD) {
-    S.adminLoggedIn = true;
-    document.getElementById('adminLock').style.display = 'none';
-    document.getElementById('adminPanel').style.display = 'block';
-    document.getElementById('newSlotDate').value = new Date().toISOString().split('T')[0];
-    renderAdminSlots();
-    renderAdminJornadas();
-    populateJornadaSelect('newSlotJornada');
-  } else { showToast('Contraseña incorrecta'); }
+  if (document.getElementById('inputAdminPass').value !== ADMIN_PASSWORD) { showToast('Contraseña incorrecta'); return; }
+  S.adminLoggedIn = true;
+  document.getElementById('adminLock').style.display = 'none';
+  document.getElementById('adminPanel').style.display = 'block';
+  document.getElementById('newSlotDate').value = new Date().toISOString().split('T')[0];
+  populateJornadaSelect('newSlotJornada'); renderAdminSlots(); renderAdminJornadas();
 }
 function logoutAdmin() {
   S.adminLoggedIn = false;
@@ -513,13 +477,12 @@ function logoutAdmin() {
   document.getElementById('inputAdminPass').value = '';
 }
 
-// ─── JORNADAS / PARTIDOS ──────────────────────────────────────────────────────
-function importMatches() {
+// ── JORNADAS ────────────────────────────────────────────
+async function importMatches() {
   const nombre = document.getElementById('newJornadaNombre').value.trim();
   const text   = document.getElementById('importText').value.trim();
   if (!nombre) { showToast('Pon un nombre a la jornada'); return; }
   if (!text)   { showToast('Escribe al menos un partido'); return; }
-
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   const matches = [];
   for (const line of lines) {
@@ -527,87 +490,85 @@ function importMatches() {
     if (parts.length < 2 || !parts[0] || !parts[1]) { showToast(`Línea inválida: "${line}"`); return; }
     matches.push({ p1: parts[0], p2: parts[1] });
   }
+  const btn = document.getElementById('btnImport');
+  btn.disabled = true; btn.textContent = 'Guardando...';
   S.jornadas.push({ id: Date.now().toString(), nombre, matches });
-  save();
-  document.getElementById('newJornadaNombre').value = '';
-  document.getElementById('importText').value = '';
-  renderAdminJornadas();
-  populateJornadaSelect('newSlotJornada');
-  populateJugadorSelect();
-  showToast(`✓ Jornada "${nombre}" importada (${matches.length} partidos)`);
+  const ok = await save();
+  btn.disabled = false; btn.textContent = 'Importar partidos';
+  if (ok) {
+    document.getElementById('newJornadaNombre').value = '';
+    document.getElementById('importText').value = '';
+    populateJornadaSelect('newSlotJornada'); populateJugadorSelect(); renderAdminJornadas();
+    showToast(`✓ "${nombre}" importada (${matches.length} partidos)`);
+  } else { S.jornadas.pop(); }
 }
-
-function deleteJornada(id) {
+async function deleteJornada(id) {
   if (!confirm('¿Eliminar esta jornada y sus partidos?')) return;
+  const backup = [...S.jornadas];
   S.jornadas = S.jornadas.filter(j => j.id !== id);
-  save();
-  renderAdminJornadas();
-  populateJornadaSelect('newSlotJornada');
-  populateJugadorSelect();
-  showToast('Jornada eliminada');
+  const ok = await save();
+  if (ok) { populateJornadaSelect('newSlotJornada'); populateJugadorSelect(); renderAdminJornadas(); showToast('Jornada eliminada'); }
+  else { S.jornadas = backup; renderAdminJornadas(); showToast('Error al eliminar'); }
 }
-
 function renderAdminJornadas() {
   const c = document.getElementById('adminJornadaList');
   if (!S.jornadas.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📋</span>Sin jornadas importadas.</div>'; return; }
   c.innerHTML = '';
   S.jornadas.forEach(j => {
-    const div = document.createElement('div');
-    div.className = 'admin-row';
-    div.style.flexDirection = 'column';
-    div.style.alignItems = 'flex-start';
-    div.innerHTML = `
-      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;margin-bottom:8px">
-        <span style="font-size:14px;font-weight:600">${j.nombre}</span>
-        <button class="btn btn-danger btn-sm" onclick="deleteJornada('${j.id}')">Eliminar</button>
-      </div>
-      ${j.matches.map(m => `<div style="font-size:11px;color:var(--white-dim);margin-bottom:3px">🎾 ${m.p1} <span style="color:var(--clay-light)">vs</span> ${m.p2}</div>`).join('')}
-    `;
-    c.appendChild(div);
+    const div = document.createElement('div'); div.className = 'admin-row'; div.style.cssText = 'flex-direction:column;align-items:flex-start;gap:8px';
+    const hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;justify-content:space-between;width:100%;align-items:center';
+    hdr.innerHTML = `<span style="font-size:14px;font-weight:600">${esc(j.nombre)}</span>`;
+    const btn = document.createElement('button'); btn.className = 'btn btn-danger btn-sm'; btn.textContent = 'Eliminar';
+    btn.onclick = () => deleteJornada(j.id);
+    hdr.appendChild(btn); div.appendChild(hdr);
+    const ml = document.createElement('div');
+    j.matches.forEach(m => { const d = document.createElement('div'); d.style.cssText = 'font-size:11px;color:var(--white-dim);margin-bottom:3px'; d.innerHTML = `🎾 ${esc(m.p1)} <span style="color:var(--clay-light)">vs</span> ${esc(m.p2)}`; ml.appendChild(d); });
+    div.appendChild(ml); c.appendChild(div);
   });
 }
-
 function populateJornadaSelect(selId) {
-  const sel = document.getElementById(selId);
-  const cur = sel.value;
+  const sel = document.getElementById(selId), cur = sel.value;
   sel.innerHTML = '<option value="">— Selecciona jornada —</option>';
   S.jornadas.forEach(j => { const o = document.createElement('option'); o.value = j.id; o.textContent = j.nombre; sel.appendChild(o); });
-  if (cur) sel.value = cur;
+  if (cur && S.jornadas.find(j => j.id === cur)) sel.value = cur;
 }
 
-// ─── SLOTS ────────────────────────────────────────────────────────────────────
-function addSlot() {
+// ── SLOTS ───────────────────────────────────────────────
+async function addSlot() {
   const jornadaId = document.getElementById('newSlotJornada').value;
   const date      = document.getElementById('newSlotDate').value;
   const time      = document.getElementById('newSlotTime').value;
   const duration  = parseInt(document.getElementById('newSlotDuration').value);
   const court     = document.getElementById('newSlotCourt').value.trim();
   if (!jornadaId || !date || !time || !court) { showToast('Rellena todos los campos'); return; }
-  S.slots.push({ id: Date.now().toString(), jornadaId, date, time, duration, court, reservedBy: null, rival: null, reservedAt: null });
+  const btn = document.getElementById('btnAddSlot');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  const slot = { id: Date.now().toString(), jornadaId, date, time, duration, court, reservedBy: null, rival: null, reservedAt: null };
+  S.slots.push(slot);
   S.slots.sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
-  save();
-  renderAdminSlots();
-  showToast('✓ Hueco publicado');
-  document.getElementById('newSlotTime').value = '';
-  document.getElementById('newSlotCourt').value = '';
+  const ok = await save();
+  btn.disabled = false; btn.textContent = '+ Publicar hueco';
+  if (ok) { renderAdminSlots(); showToast('✓ Hueco publicado'); document.getElementById('newSlotTime').value = ''; document.getElementById('newSlotCourt').value = ''; }
+  else { S.slots = S.slots.filter(s => s.id !== slot.id); }
 }
-
-function deleteSlot(id) {
+async function deleteSlot(id) {
   const s = S.slots.find(x => x.id === id);
   if (s?.reservedBy && !confirm('Este hueco está reservado. ¿Eliminar igualmente?')) return;
+  const backup = [...S.slots];
   S.slots = S.slots.filter(x => x.id !== id);
-  save(); renderAdminSlots(); renderResumen();
-  showToast('Hueco eliminado');
+  const ok = await save();
+  if (ok) { renderAdminSlots(); renderResumen(); showToast('Hueco eliminado'); }
+  else { S.slots = backup; renderAdminSlots(); }
 }
-
-function adminCancelSlot(id) {
+async function adminCancelSlot(id) {
   const s = S.slots.find(x => x.id === id);
   if (!s || !confirm(`¿Liberar la reserva de ${s.reservedBy}?`)) return;
+  const {reservedBy, rival, reservedAt} = s;
   s.reservedBy = null; s.rival = null; s.reservedAt = null;
-  save(); renderAdminSlots(); renderResumen();
-  showToast('Reserva liberada');
+  const ok = await save();
+  if (ok) { renderAdminSlots(); renderResumen(); showToast('Reserva liberada'); }
+  else { s.reservedBy = reservedBy; s.rival = rival; s.reservedAt = reservedAt; renderAdminSlots(); }
 }
-
 function renderAdminSlots() {
   if (!S.adminLoggedIn) return;
   const c = document.getElementById('adminSlotList');
@@ -615,229 +576,143 @@ function renderAdminSlots() {
   const free = S.slots.filter(s => !s.reservedBy).length;
   c.innerHTML = `<div class="counter">${free} libre(s) · ${S.slots.length - free} reservado(s)</div>`;
   S.slots.forEach(slot => {
-    const j = S.jornadas.find(x => x.id === slot.jornadaId);
-    const taken = !!slot.reservedBy;
-    const div = document.createElement('div');
-    div.className = 'admin-row';
-    div.innerHTML = `
-      <div class="admin-row-info">
-        <div class="admin-row-name">${formatDate(slot.date)} · ${slot.time}</div>
-        <div class="admin-row-detail">${slot.court} · ${slot.duration||MATCH_DUR_DEFAULT}min · ${j?.nombre||'Sin jornada'}${taken?` · <strong style="color:var(--clay-light)">${slot.reservedBy} vs ${slot.rival}</strong>`:''}</div>
-      </div>
-      <div class="admin-btns">
-        ${taken ? `<button class="btn btn-secondary btn-sm" onclick="adminCancelSlot('${slot.id}')">Liberar</button>` : ''}
-        <button class="btn btn-danger btn-sm" onclick="deleteSlot('${slot.id}')">✕</button>
-      </div>`;
-    c.appendChild(div);
+    const j = S.jornadas.find(x => x.id === slot.jornadaId), taken = !!slot.reservedBy;
+    const div = document.createElement('div'); div.className = 'admin-row';
+    const info = document.createElement('div'); info.className = 'admin-row-info';
+    info.innerHTML = `<div class="admin-row-name">${formatDate(slot.date)} · ${slot.time}</div><div class="admin-row-detail">${esc(slot.court)} · ${slot.duration||MATCH_DUR_DEFAULT}min · ${esc(j?.nombre||'Sin jornada')}${taken?` · <strong style="color:var(--clay-light)">${esc(slot.reservedBy)} vs ${esc(slot.rival)}</strong>`:''}</div>`;
+    const btns = document.createElement('div'); btns.className = 'admin-btns';
+    if (taken) { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = 'Liberar'; b.onclick = () => adminCancelSlot(slot.id); btns.appendChild(b); }
+    const del = document.createElement('button'); del.className = 'btn btn-danger btn-sm'; del.textContent = '✕'; del.onclick = () => deleteSlot(slot.id);
+    btns.appendChild(del); div.appendChild(info); div.appendChild(btns); c.appendChild(div);
   });
 }
 
-// ─── RESUMEN ──────────────────────────────────────────────────────────────────
+// ── RESUMEN ─────────────────────────────────────────────
 function renderResumen() {
   if (!S.adminLoggedIn) return;
-  const pills = document.getElementById('resumenPills');
-  const content = document.getElementById('resumenContent');
-
-  if (!S.jornadas.length) {
-    pills.innerHTML = '';
-    content.innerHTML = '<div class="empty"><span class="empty-icon">📊</span>Sin jornadas registradas todavía.</div>';
-    return;
-  }
-
-  // Pills
-  if (!S.activeResumenJornada || !S.jornadas.find(j => j.id === S.activeResumenJornada)) {
-    S.activeResumenJornada = S.jornadas[S.jornadas.length - 1].id;
-  }
+  const pills = document.getElementById('resumenPills'), content = document.getElementById('resumenContent');
+  if (!S.jornadas.length) { pills.innerHTML = ''; content.innerHTML = '<div class="empty"><span class="empty-icon">📊</span>Sin jornadas registradas.</div>'; return; }
+  if (!S.activeResumenJornada || !S.jornadas.find(j => j.id === S.activeResumenJornada)) S.activeResumenJornada = S.jornadas[S.jornadas.length-1].id;
   pills.innerHTML = '';
-  S.jornadas.forEach(j => {
-    const btn = document.createElement('button');
-    btn.className = 'jpill' + (j.id === S.activeResumenJornada ? ' active' : '');
-    btn.textContent = j.nombre;
-    btn.onclick = () => { S.activeResumenJornada = j.id; renderResumen(); };
-    pills.appendChild(btn);
-  });
-
+  S.jornadas.forEach(j => { const b = document.createElement('button'); b.className = 'jpill' + (j.id === S.activeResumenJornada ? ' active' : ''); b.textContent = j.nombre; b.onclick = () => { S.activeResumenJornada = j.id; renderResumen(); }; pills.appendChild(b); });
   const jornada = S.jornadas.find(j => j.id === S.activeResumenJornada);
   if (!jornada) { content.innerHTML = ''; return; }
-
-  const total = jornada.matches.length;
-  const done  = jornada.matches.filter(m => {
-    return S.slots.some(s => s.reservedBy &&
-      ((s.reservedBy === m.p1 && s.rival === m.p2) || (s.reservedBy === m.p2 && s.rival === m.p1)));
-  }).length;
-
-  content.innerHTML = `<div class="counter" style="text-align:left;margin-bottom:12px">${done} de ${total} partidos con hueco reservado</div>`;
-
+  const done = jornada.matches.filter(m => S.slots.some(s => s.reservedBy && ((s.reservedBy===m.p1&&s.rival===m.p2)||(s.reservedBy===m.p2&&s.rival===m.p1)))).length;
+  content.innerHTML = `<div class="counter" style="text-align:left;margin-bottom:12px">${done} de ${jornada.matches.length} partidos con hueco reservado</div>`;
   jornada.matches.forEach(m => {
-    const slot = S.slots.find(s => s.reservedBy &&
-      ((s.reservedBy === m.p1 && s.rival === m.p2) || (s.reservedBy === m.p2 && s.rival === m.p1)));
-    const div = document.createElement('div');
-    div.className = 'summary-row';
-    div.innerHTML = `
-      <div class="summary-status">${slot ? '✅' : '❌'}</div>
-      <div class="summary-info">
-        <div class="summary-players">${m.p1} <span style="color:var(--clay-light);font-size:10px">vs</span> ${m.p2}</div>
-        ${slot
-          ? `<div class="summary-slot">📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}</div>`
-          : `<div class="summary-pending">Sin hueco reservado</div>`}
-      </div>`;
+    const slot = S.slots.find(s => s.reservedBy && ((s.reservedBy===m.p1&&s.rival===m.p2)||(s.reservedBy===m.p2&&s.rival===m.p1)));
+    const div = document.createElement('div'); div.className = 'summary-row';
+    div.innerHTML = `<div class="summary-status">${slot?'✅':'❌'}</div><div class="summary-info"><div class="summary-players">${esc(m.p1)} <span style="color:var(--clay-light);font-size:10px">vs</span> ${esc(m.p2)}</div>${slot?`<div class="summary-slot">📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}</div>`:`<div class="summary-pending">Sin hueco reservado</div>`}</div>`;
     content.appendChild(div);
   });
 }
 
-// ─── BOOKING ──────────────────────────────────────────────────────────────────
+// ── BOOKING ─────────────────────────────────────────────
 function openBooking(slotId) {
-  const slot = S.slots.find(s => s.id === slotId);
-  if (!slot) return;
+  const slot = S.slots.find(s => s.id === slotId); if (!slot) return;
   S.pendingSlotId = slotId;
-  document.getElementById('bookingModalDesc').innerHTML =
-    `<strong>${S.currentPlayer}</strong> vs <strong>${S.currentRival}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}`;
+  document.getElementById('bookingModalDesc').innerHTML = `<strong>${esc(S.currentPlayer)}</strong> vs <strong>${esc(S.currentRival)}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}`;
   openModal('bookingModal');
 }
-
-function confirmBooking() {
+async function confirmBooking() {
   const slot = S.slots.find(s => s.id === S.pendingSlotId);
   if (!slot || slot.reservedBy) { showToast('Este hueco ya no está disponible'); closeModal('bookingModal'); return; }
+  const btn = document.getElementById('btnConfirmBooking');
+  btn.disabled = true; btn.textContent = 'Guardando...';
   slot.reservedBy = S.currentPlayer; slot.rival = S.currentRival; slot.reservedAt = Date.now();
-  save(); closeModal('bookingModal'); renderSlots(); renderAdminSlots(); renderResumen();
-  showSuccessModal(slot);
+  const ok = await save();
+  btn.disabled = false; btn.textContent = 'Confirmar reserva';
+  if (ok) { closeModal('bookingModal'); renderSlots(); showSuccessModal(slot); }
+  else { slot.reservedBy = null; slot.rival = null; slot.reservedAt = null; }
 }
-
 function showSuccessModal(slot) {
-  document.getElementById('successModalDesc').innerHTML =
-    `<strong>${slot.reservedBy}</strong> vs <strong>${slot.rival}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}`;
+  document.getElementById('successModalDesc').innerHTML = `<strong>${esc(slot.reservedBy)}</strong> vs <strong>${esc(slot.rival)}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}`;
   document.getElementById('calIos').href    = buildIcs(slot);
   document.getElementById('calGoogle').href = buildGoogle(slot);
   openModal('successModal');
 }
-
 function openCancelModal(slotId) {
-  const slot = S.slots.find(s => s.id === slotId);
-  if (!slot) return;
+  const slot = S.slots.find(s => s.id === slotId); if (!slot) return;
   const rem = 24*3600000 - (Date.now() - slot.reservedAt);
   if (rem <= 0) { showToast('Las 24h para cambiar han expirado'); return; }
   S.pendingSlotId = slotId;
   const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
-  document.getElementById('cancelModalDesc').innerHTML =
-    `¿Seguro que quieres liberar el hueco del <strong>${formatDate(slot.date)}</strong> a las <strong>${slot.time}</strong>?<br><br>Te quedan <strong>${h}h ${m}min</strong> para cambiarlo.`;
+  document.getElementById('cancelModalDesc').innerHTML = `¿Seguro que quieres liberar el hueco del <strong>${formatDate(slot.date)}</strong> a las <strong>${slot.time}</strong>?<br><br>Te quedan <strong>${h}h ${m}min</strong> para cambiarlo.`;
   openModal('cancelModal');
 }
-
-function confirmCancel() {
-  const slot = S.slots.find(s => s.id === S.pendingSlotId);
-  if (slot) { slot.reservedBy = null; slot.rival = null; slot.reservedAt = null; save(); renderSlots(); renderAdminSlots(); renderResumen(); showToast('Hueco liberado'); }
-  closeModal('cancelModal');
+async function confirmCancel() {
+  const slot = S.slots.find(s => s.id === S.pendingSlotId); if (!slot) { closeModal('cancelModal'); return; }
+  const btn = document.getElementById('btnConfirmCancel');
+  btn.disabled = true; btn.textContent = 'Liberando...';
+  const {reservedBy, rival, reservedAt} = slot;
+  slot.reservedBy = null; slot.rival = null; slot.reservedAt = null;
+  const ok = await save();
+  btn.disabled = false; btn.textContent = 'Sí, liberar este hueco';
+  if (ok) { closeModal('cancelModal'); renderSlots(); showToast('Hueco liberado'); }
+  else { slot.reservedBy = reservedBy; slot.rival = rival; slot.reservedAt = reservedAt; }
 }
 
-// ─── RENDER SLOTS (JUGADOR) ───────────────────────────────────────────────────
+// ── RENDER SLOTS ────────────────────────────────────────
 function renderSlots() {
   const c = document.getElementById('slotList');
-
-  // Anti-piracy: check if this matchup already has a slot reserved (regardless of who entered)
-  const matchupReserved = S.slots.find(s => s.reservedBy &&
-    ((s.reservedBy === S.currentPlayer && s.rival === S.currentRival) ||
-     (s.reservedBy === S.currentRival  && s.rival === S.currentPlayer)));
-
-  // Also find slot where currentPlayer is the one who booked
-  const mySlot = S.slots.find(s => s.reservedBy === S.currentPlayer && s.rival === S.currentRival);
-
-  if (!S.slots.length) {
-    c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>La organización aún no ha publicado huecos.</div>';
-    return;
-  }
-
+  const matchupReserved = S.slots.find(s => s.reservedBy && ((s.reservedBy===S.currentPlayer&&s.rival===S.currentRival)||(s.reservedBy===S.currentRival&&s.rival===S.currentPlayer)));
+  const mySlot = S.slots.find(s => s.reservedBy===S.currentPlayer && s.rival===S.currentRival);
+  if (!S.slots.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>La organización aún no ha publicado huecos.</div>'; return; }
   c.innerHTML = '';
-
-  // If already reserved by the other player (piracy detected)
   if (matchupReserved && !mySlot) {
-    const slot = matchupReserved;
-    c.innerHTML = `
-      <div class="blocked-notice">
-        <h3>🔒 Partido ya reservado</h3>
-        <p>Tu rival <strong>${S.currentRival}</strong> ya ha reservado este partido:<br><br>
-        📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}</p>
-      </div>`;
-    // Still show calendar buttons if within 24h they can ask to change
-    const rem = 24*3600000 - (Date.now() - slot.reservedAt);
-    if (rem > 0) {
-      const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
-      c.innerHTML += `<div class="info-box-yellow">⏱ La reserva puede cambiarse durante las próximas ${h}h ${m}min. Si no estás de acuerdo con el hueco elegido, habla con tu rival.</div>`;
-    } else {
-      c.innerHTML += `<div class="info-box">🔒 La reserva ya es inamovible (han pasado las 24h).</div>`;
-    }
+    const slot = matchupReserved, rem = 24*3600000-(Date.now()-slot.reservedAt);
+    c.innerHTML = `<div class="blocked-notice"><h3>🔒 Partido ya reservado</h3><p>Tu rival <strong>${esc(S.currentRival)}</strong> ya ha elegido hueco:<br><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}</p></div>${rem>0?`<div class="info-box-yellow">⏱ Todavía dentro del plazo de cambio. Si no estás de acuerdo, habla con tu rival.</div>`:`<div class="info-box">🔒 La reserva ya es inamovible (pasaron las 24h).</div>`}`;
     return;
   }
-
   S.slots.forEach(slot => {
-    const isMine  = slot.reservedBy === S.currentPlayer && slot.rival === S.currentRival;
+    const isMine  = slot.reservedBy===S.currentPlayer && slot.rival===S.currentRival;
     const isTaken = slot.reservedBy && !isMine;
-    const rem     = isMine ? 24*3600000 - (Date.now() - slot.reservedAt) : 0;
+    const rem     = isMine ? 24*3600000-(Date.now()-slot.reservedAt) : 0;
     const canChange = isMine && rem > 0;
     const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
-
-    let badge='', action='', extra='', calBtns='';
-    if (isMine) {
-      badge = '<span class="badge badge-mine">⭐ Tu reserva</span>';
-      calBtns = `<div class="cal-row"><a href="#" onclick="event.preventDefault();showSuccessModal(S.slots.find(s=>s.id==='${slot.id}'))" class="btn-cal btn-cal-ios">🍎 Apple</a><a href="#" onclick="event.preventDefault();showSuccessModal(S.slots.find(s=>s.id==='${slot.id}'))" class="btn-cal btn-cal-google">📅 Google</a></div>`;
-      extra = canChange
-        ? `<div class="slot-timer">⏱ Puedes cambiarlo ${h}h ${m}min más</div>`
-        : `<div class="slot-timer" style="color:var(--red)">🔒 Reserva fija</div>`;
-      if (canChange) action = `<button class="btn btn-danger" style="margin-top:9px" onclick="openCancelModal('${slot.id}')">Cambiar reserva</button>`;
-    } else if (isTaken) {
-      badge = '<span class="badge badge-taken">Ocupado</span>';
-    } else {
-      badge = '<span class="badge badge-free">Disponible</span>';
-      if (!matchupReserved) action = `<button class="btn btn-primary" style="margin-top:9px" onclick="openBooking('${slot.id}')">Reservar este hueco</button>`;
-    }
-
     const card = document.createElement('div');
     card.className = `slot-card ${isMine?'mine':isTaken?'taken':'available'}`;
-    card.innerHTML = `
-      <div class="slot-meta">
-        <div><div class="slot-day">${formatDate(slot.date)}</div><div class="slot-hour">${slot.time} · ${slot.duration||MATCH_DUR_DEFAULT}min</div></div>
-        <div class="slot-court-label">🎾 ${slot.court}</div>
-      </div>
-      ${badge}${extra}${calBtns}${action}`;
+    card.innerHTML = `<div class="slot-meta"><div><div class="slot-day">${formatDate(slot.date)}</div><div class="slot-hour">${slot.time} · ${slot.duration||MATCH_DUR_DEFAULT}min</div></div><div class="slot-court-label">🎾 ${esc(slot.court)}</div></div>`;
+    if (isMine) {
+      card.innerHTML += `<span class="badge badge-mine">⭐ Tu reserva</span>${canChange?`<div class="slot-timer">⏱ Puedes cambiarlo ${h}h ${m}min más</div>`:`<div class="slot-timer" style="color:var(--red)">🔒 Reserva fija</div>`}`;
+      const cr = document.createElement('div'); cr.className = 'cal-row';
+      const ai = document.createElement('a'); ai.href='#'; ai.className='btn-cal btn-cal-ios'; ai.textContent='🍎 Apple'; ai.onclick=e=>{e.preventDefault();showSuccessModal(slot);};
+      const ag = document.createElement('a'); ag.href='#'; ag.className='btn-cal btn-cal-google'; ag.textContent='📅 Google'; ag.onclick=e=>{e.preventDefault();showSuccessModal(slot);};
+      cr.appendChild(ai); cr.appendChild(ag); card.appendChild(cr);
+      if (canChange) { const b=document.createElement('button'); b.className='btn btn-danger'; b.style.marginTop='9px'; b.textContent='Cambiar reserva'; b.onclick=()=>openCancelModal(slot.id); card.appendChild(b); }
+    } else if (isTaken) {
+      card.innerHTML += `<span class="badge badge-taken">Ocupado</span>`;
+    } else {
+      card.innerHTML += `<span class="badge badge-free">Disponible</span>`;
+      if (!matchupReserved) { const b=document.createElement('button'); b.className='btn btn-primary'; b.style.marginTop='9px'; b.textContent='Reservar este hueco'; b.onclick=()=>openBooking(slot.id); card.appendChild(b); }
+    }
     c.appendChild(card);
   });
 }
 
-// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+// ── CALENDARIO ──────────────────────────────────────────
 function buildIcs(slot) {
-  const dur = slot.duration || MATCH_DUR_DEFAULT;
-  const [y,mo,d] = slot.date.split('-').map(Number);
-  const [hh,mm]  = slot.time.split(':').map(Number);
-  const pad = n => String(n).padStart(2,'0');
-  const dtS = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
-  const end = new Date(y, mo-1, d, hh, mm+dur);
-  const dtE = `${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
-  const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Liga Tenis//ES\r\nBEGIN:VEVENT\r\nUID:${slot.id}@ligatenis\r\nDTSTART:${dtS}\r\nDTEND:${dtE}\r\nSUMMARY:🎾 ${slot.reservedBy} vs ${slot.rival}\r\nLOCATION:${slot.court}\r\nDESCRIPTION:Partido de liga de tenis\r\nEND:VEVENT\r\nEND:VCALENDAR`;
-  return URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+  const dur=slot.duration||MATCH_DUR_DEFAULT,[y,mo,d]=slot.date.split('-').map(Number),[hh,mm]=slot.time.split(':').map(Number);
+  const pad=n=>String(n).padStart(2,'0'),dtS=`${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`,end=new Date(y,mo-1,d,hh,mm+dur);
+  const dtE=`${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+  const ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Liga Tenis//ES\r\nBEGIN:VEVENT\r\nUID:${slot.id}@ligatenis\r\nDTSTART:${dtS}\r\nDTEND:${dtE}\r\nSUMMARY:🎾 ${slot.reservedBy} vs ${slot.rival}\r\nLOCATION:${slot.court}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+  return URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
 }
 function buildGoogle(slot) {
-  const dur = slot.duration || MATCH_DUR_DEFAULT;
-  const [y,mo,d] = slot.date.split('-').map(Number);
-  const [hh,mm]  = slot.time.split(':').map(Number);
-  const pad = n => String(n).padStart(2,'0');
-  const dtS = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
-  const end = new Date(y, mo-1, d, hh, mm+dur);
-  const dtE = `${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+  const dur=slot.duration||MATCH_DUR_DEFAULT,[y,mo,d]=slot.date.split('-').map(Number),[hh,mm]=slot.time.split(':').map(Number);
+  const pad=n=>String(n).padStart(2,'0'),dtS=`${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`,end=new Date(y,mo-1,d,hh,mm+dur);
+  const dtE=`${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`🎾 ${slot.reservedBy} vs ${slot.rival}`)}&dates=${dtS}/${dtE}&location=${encodeURIComponent(slot.court)}&details=${encodeURIComponent('Partido de liga de tenis')}`;
 }
 
-// ─── UTILS ────────────────────────────────────────────────────────────────────
-function formatDate(ds) {
-  const [y,m,d] = ds.split('-');
-  return new Date(y,m-1,d).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
-}
+// ── UTILS ───────────────────────────────────────────────
+function formatDate(ds) { const[y,m,d]=ds.split('-'); return new Date(y,m-1,d).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase()); }
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 let _tt;
-function showToast(msg) {
-  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2800);
-}
-document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); }));
+function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2800); }
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
 
 initApp();
 </script>
