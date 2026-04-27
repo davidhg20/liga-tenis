@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liga de Tenis · Reserva de Partidos</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --clay:#c8521a; --clay-dark:#9e3e10; --clay-light:#e8845a;
+    --court:#1a1a1a; --court-mid:#252525; --court-light:#333;
+    --white:#f5f0eb; --white-dim:#b0a89e;
+    --green:#4caf7d; --yellow:#f0c040; --red:#e05050;
+    --line:rgba(200,190,180,0.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;background:var(--court);color:var(--white);min-height:100vh;overflow-x:hidden}
+  body::before{content:'';position:fixed;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 59px,var(--line) 59px,var(--line) 60px),repeating-linear-gradient(90deg,transparent,transparent 59px,var(--line) 59px,var(--line) 60px);pointer-events:none;z-index:0}
+  .app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding:0 0 80px}
+
+  /* HEADER */
+  .header{background:linear-gradient(135deg,var(--clay-dark) 0%,var(--clay) 60%,var(--clay-light) 100%);padding:28px 20px 20px;position:relative;overflow:hidden}
+  .header::after{content:'🎾';position:absolute;right:-10px;top:-10px;font-size:100px;opacity:.1;transform:rotate(-20deg)}
+  .header-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:3px}
+  .header-title{font-family:'Bebas Neue',sans-serif;font-size:40px;line-height:1;color:#fff}
+  .header-sub{margin-top:6px;font-size:12px;color:rgba(255,255,255,.65);font-weight:300}
+
+  /* TABS */
+  .tabs{display:flex;background:var(--court-mid);position:sticky;top:0;z-index:10;border-bottom:1px solid var(--line)}
+  .tab{flex:1;padding:13px 4px;text-align:center;font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--white-dim);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;transition:all .2s}
+  .tab.active{color:var(--clay-light);border-bottom-color:var(--clay)}
+
+  .section{display:none;padding:18px}
+  .section.active{display:block}
+  .sec-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--clay-light);margin-bottom:3px}
+  .sec-desc{font-size:11px;color:var(--white-dim);margin-bottom:16px;line-height:1.5}
+
+  /* CARDS */
+  .slot-card{background:var(--court-mid);border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:9px}
+  .slot-card.available{border-left:3px solid var(--green)}
+  .slot-card.taken{border-left:3px solid var(--clay);opacity:.65}
+  .slot-card.mine{border-left:3px solid var(--yellow)}
+  .slot-meta{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .slot-day{font-family:'Bebas Neue',sans-serif;font-size:17px;line-height:1}
+  .slot-hour{font-size:11px;color:var(--white-dim);margin-top:2px}
+  .slot-court-label{font-size:11px;color:var(--white-dim);text-align:right}
+  .badge{display:inline-block;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:600;margin-top:9px}
+  .badge-free{background:rgba(76,175,125,.18);color:var(--green)}
+  .badge-taken{background:rgba(200,82,26,.18);color:var(--clay-light)}
+  .badge-mine{background:rgba(240,192,64,.18);color:var(--yellow)}
+  .slot-timer{margin-top:5px;font-size:10px;color:var(--yellow)}
+
+  /* CALENDAR BUTTONS */
+  .cal-row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+  .btn-cal{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
+  .btn-cal-ios{background:rgba(255,255,255,.1);color:var(--white);border:1px solid rgba(255,255,255,.2)}
+  .btn-cal-google{background:rgba(66,133,244,.18);color:#7aadff;border:1px solid rgba(66,133,244,.28)}
+
+  /* BUTTONS */
+  .btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;letter-spacing:.3px;cursor:pointer;transition:all .15s;text-align:center;margin-top:9px}
+  .btn-primary{background:var(--clay);color:#fff}
+  .btn-primary:hover{background:var(--clay-dark)}
+  .btn-secondary{background:transparent;color:var(--white-dim);border:1px solid var(--line)}
+  .btn-danger{background:rgba(224,80,80,.12);color:var(--red);border:1px solid rgba(224,80,80,.28)}
+  .btn-sm{display:inline-block;width:auto;padding:6px 12px;font-size:11px;margin-top:0}
+
+  /* FORMS */
+  .fg{margin-bottom:13px}
+  label{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--white-dim);margin-bottom:5px}
+  input,select,textarea{width:100%;background:var(--court-light);border:1px solid var(--line);border-radius:8px;padding:10px 13px;color:var(--white);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
+  input:focus,select:focus,textarea:focus{border-color:var(--clay)}
+  select option{background:var(--court-mid)}
+  textarea{resize:vertical;min-height:90px;line-height:1.5}
+  select:disabled{opacity:.5;cursor:not-allowed}
+
+  /* ADMIN ITEMS */
+  .admin-row{display:flex;align-items:center;justify-content:space-between;background:var(--court-mid);border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:7px}
+  .admin-row-info{flex:1}
+  .admin-row-name{font-size:13px;font-weight:500}
+  .admin-row-detail{font-size:10px;color:var(--white-dim);margin-top:2px}
+  .admin-btns{display:flex;gap:6px;align-items:center}
+
+  /* MATCH CARD ADMIN */
+  .match-card{background:var(--court-mid);border:1px solid var(--line);border-radius:12px;padding:13px 15px;margin-bottom:9px}
+  .match-players{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:500;margin-bottom:7px}
+  .vs{font-size:9px;color:var(--white-dim);background:var(--court-light);padding:2px 5px;border-radius:4px}
+  .match-detail{font-size:11px;color:var(--white-dim)}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px}
+  .dot-green{background:var(--green)} .dot-yellow{background:var(--yellow)}
+
+  /* SUMMARY TABLE */
+  .summary-row{display:flex;align-items:center;gap:10px;background:var(--court-mid);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:7px}
+  .summary-status{font-size:18px;flex-shrink:0}
+  .summary-info{flex:1}
+  .summary-players{font-size:13px;font-weight:500}
+  .summary-slot{font-size:11px;color:var(--white-dim);margin-top:2px}
+  .summary-pending{font-size:11px;color:var(--red);margin-top:2px}
+
+  /* JORNADA SELECTOR */
+  .jornada-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
+  .jpill{font-size:11px;padding:5px 13px;border-radius:20px;border:1px solid var(--line);color:var(--white-dim);cursor:pointer;transition:all .15s;background:none}
+  .jpill.active{background:var(--clay);border-color:var(--clay);color:#fff}
+
+  /* DIVIDER */
+  hr{border:none;border-top:1px solid var(--line);margin:18px 0}
+
+  /* INFO BOX */
+  .info-box{background:rgba(200,82,26,.1);border:1px solid rgba(200,82,26,.28);border-radius:9px;padding:11px 13px;font-size:11px;color:var(--clay-light);margin-bottom:14px;line-height:1.5}
+  .info-box-yellow{background:rgba(240,192,64,.08);border:1px solid rgba(240,192,64,.25);border-radius:9px;padding:11px 13px;font-size:11px;color:var(--yellow);margin-bottom:14px;line-height:1.5}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:50;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
+  .modal-overlay.open{opacity:1;pointer-events:all}
+  .modal{background:var(--court-mid);border-radius:20px 20px 0 0;padding:22px 19px 38px;width:100%;transform:translateY(30px);transition:transform .25s;max-width:480px;margin:0 auto}
+  .modal-overlay.open .modal{transform:translateY(0)}
+  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:5px;color:var(--clay-light)}
+  .modal-title-green{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:5px;color:var(--green)}
+  .modal-desc{font-size:12px;color:var(--white-dim);margin-bottom:16px;line-height:1.6}
+
+  /* LOCK */
+  .lock-wrap{text-align:center;padding:28px 0}
+  .lock-icon{font-size:38px;margin-bottom:10px}
+  .lock-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--white-dim);margin-bottom:14px}
+
+  /* LOGIN CARD */
+  .login-card{background:var(--court-mid);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px}
+  .login-title{font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:11px;color:var(--white-dim)}
+
+  /* EMPTY */
+  .empty{text-align:center;padding:36px 16px;color:var(--white-dim);font-size:12px;font-style:italic}
+  .empty-icon{font-size:32px;margin-bottom:9px;display:block}
+
+  /* BLOCKED */
+  .blocked-notice{background:rgba(224,80,80,.1);border:1px solid rgba(224,80,80,.25);border-radius:10px;padding:14px;margin-bottom:12px;text-align:center}
+  .blocked-notice h3{font-size:14px;color:var(--red);margin-bottom:6px}
+  .blocked-notice p{font-size:12px;color:var(--white-dim);line-height:1.5}
+
+  /* TOAST */
+  .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--court-light);border:1px solid var(--line);color:var(--white);padding:11px 18px;border-radius:28px;font-size:12px;opacity:0;transition:all .3s;z-index:100;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.4)}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  .counter{font-size:11px;color:var(--white-dim);text-align:right;margin-bottom:9px}
+  .success-icon{font-size:44px;text-align:center;display:block;margin-bottom:10px}
+
+  /* ADMIN SUBTABS */
+  .subtabs{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .subtab{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--white-dim);cursor:pointer;border:none;background:none;transition:all .2s}
+  .subtab.active{background:var(--clay);color:#fff}
+
+  .admin-sub{display:none}
+  .admin-sub.active{display:block}
+
+  /* sync */
+  .header-sub{display:flex;align-items:center;gap:6px}
+  .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--white-dim);flex-shrink:0}
+  .sync-dot.ok{background:var(--green)}.sync-dot.err{background:var(--red)}.sync-dot.loading{background:var(--yellow);animation:pulse .7s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  /* loading overlay */
+  .loading-overlay{position:fixed;inset:0;background:rgba(20,20,20,.9);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
+  .loading-overlay.hidden{display:none}
+  .spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--clay);border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .loading-text{font-size:13px;color:var(--white-dim)}
+</style>
+</head>
+<body>
+<!-- Loading -->
+<div class="loading-overlay hidden" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Cargando datos...</div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="header-label">Temporada 2025</div>
+    <div class="header-title">Liga de Tenis</div>
+    <div class="header-sub">
+      <span id="syncLabel">Conectando...</span>
+      <span class="sync-dot loading" id="syncDot"></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('jugador')">Jugadores</button>
+    <button class="tab" onclick="switchTab('admin')">Organización</button>
+  </div>
+
+  <!-- ═══════════════ JUGADOR ═══════════════ -->
+  <div class="section active" id="tab-jugador">
+
+    <!-- Login -->
+    <div id="jugadorLogin">
+      <div style="height:14px"></div>
+      <div class="info-box">🎾 Primero acordad el hueco con tu rival. Luego uno de los dos reserva aquí.</div>
+      <div class="login-card">
+        <div class="login-title">¿Quién eres?</div>
+        <div class="fg">
+          <label>Tu nombre</label>
+          <select id="selJugador" onchange="onSelectJugador()">
+            <option value="">— Selecciona tu nombre —</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Tu rival</label>
+          <select id="selRival" disabled>
+            <option value="">— Selecciona primero tu nombre —</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="loginJugador()">Ver huecos disponibles →</button>
+      </div>
+    </div>
+
+    <!-- Huecos -->
+    <div id="jugadorHuecos" style="display:none">
+      <div style="height:14px"></div>
+      <div class="sec-title" id="jugadorBienvenida">Hola, —</div>
+      <div class="sec-desc">Selecciona el hueco acordado con tu rival. Tienes <strong>24 horas</strong> para cambiarlo.</div>
+      <div id="slotList"></div>
+      <button class="btn btn-secondary" style="margin-top:8px" onclick="logoutJugador()">← Cambiar jugador</button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════ ADMIN ═══════════════ -->
+  <div class="section" id="tab-admin">
+    <div id="adminLock">
+      <div class="lock-wrap">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">Acceso Organización</div>
+        <div class="fg"><input type="password" id="inputAdminPass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginAdmin()"/></div>
+        <button class="btn btn-primary" onclick="loginAdmin()">Entrar</button>
+      </div>
+    </div>
+
+    <div id="adminPanel" style="display:none">
+      <div style="height:14px"></div>
+
+      <div class="subtabs">
+        <button class="subtab active" onclick="switchSubtab('huecos')">Huecos</button>
+        <button class="subtab" onclick="switchSubtab('partidos')">Partidos</button>
+        <button class="subtab" onclick="switchSubtab('resumen')">Resumen</button>
+      </div>
+
+      <!-- SUBTAB: HUECOS -->
+      <div class="admin-sub active" id="sub-huecos">
+        <div class="sec-title">Añadir Hueco</div>
+        <div class="sec-desc">Publica huecos disponibles para que los jugadores los reserven.</div>
+        <div class="fg"><label>Jornada</label>
+          <select id="newSlotJornada" id="newSlotJornada">
+            <option value="">— Selecciona jornada —</option>
+          </select>
+        </div>
+        <div class="fg"><label>Fecha</label><input type="date" id="newSlotDate"/></div>
+        <div class="fg"><label>Hora</label><input type="time" id="newSlotTime"/></div>
+        <div class="fg"><label>Duración</label>
+          <select id="newSlotDuration">
+            <option value="60">60 min</option>
+            <option value="90" selected>90 min</option>
+            <option value="120">120 min</option>
+          </select>
+        </div>
+        <div class="fg"><label>Pista</label><input type="text" id="newSlotCourt" placeholder="Ej: Pista 1"/></div>
+        <button class="btn btn-primary" onclick="addSlot()">+ Publicar hueco</button>
+        <hr>
+        <div class="sec-title">Huecos Publicados</div>
+        <div id="adminSlotList"></div>
+      </div>
+
+      <!-- SUBTAB: PARTIDOS -->
+      <div class="admin-sub" id="sub-partidos">
+        <div class="sec-title">Importar Partidos</div>
+        <div class="sec-desc">Escribe o pega los enfrentamientos de una jornada. Un partido por línea, separado por coma:<br><strong>Jugador 1, Jugador 2</strong></div>
+        <div class="fg"><label>Nombre de la jornada</label><input type="text" id="newJornadaNombre" placeholder="Ej: Jornada 3, Cuartos de final..."/></div>
+        <div class="fg"><label>Partidos</label>
+          <textarea id="importText" placeholder="Carlos García, Marta López&#10;Pedro Ruiz, Ana Sánchez&#10;Luis Fernández, Carmen Torres"></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="importMatches()">Importar partidos</button>
+        <hr>
+        <div class="sec-title">Jornadas Registradas</div>
+        <div id="adminJornadaList"></div>
+      </div>
+
+      <!-- SUBTAB: RESUMEN -->
+      <div class="admin-sub" id="sub-resumen">
+        <div class="sec-title">Resumen por Jornada</div>
+        <div class="sec-desc">Estado de reservas de cada partido. ✅ = hueco confirmado · ❌ = pendiente.</div>
+        <div class="jornada-pills" id="resumenPills"></div>
+        <div id="resumenContent"></div>
+      </div>
+
+      <hr>
+      <button class="btn btn-secondary" onclick="logoutAdmin()">Cerrar sesión admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal confirmar reserva -->
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal">
+    <div class="modal-title">Confirmar Reserva</div>
+    <div class="modal-desc" id="bookingModalDesc"></div>
+    <div class="info-box">⏱ Tienes <strong>24 horas</strong> para cambiarla. Después queda fija.</div>
+    <button class="btn btn-primary" onclick="confirmBooking()">Confirmar reserva</button>
+    <button class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Modal éxito + calendario -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <span class="success-icon">✅</span>
+    <div class="modal-title-green">¡Partido Reservado!</div>
+    <div class="modal-desc" id="successModalDesc"></div>
+    <div>
+      <span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--white-dim);display:block;margin-bottom:7px">📅 Añadir a mi calendario</span>
+      <div class="cal-row">
+        <a id="calIos" href="#" class="btn-cal btn-cal-ios" target="_blank">🍎 Apple Calendar</a>
+        <a id="calGoogle" href="#" class="btn-cal btn-cal-google" target="_blank">📅 Google Calendar</a>
+      </div>
+      <div style="font-size:10px;color:var(--white-dim);margin-top:7px;line-height:1.5">Apple: descarga el .ics y ábrelo · Google: se abre en el navegador</div>
+    </div>
+    <button class="btn btn-secondary" style="margin-top:14px" onclick="closeModal('successModal')">Cerrar</button>
+  </div>
+</div>
+
+<!-- Modal cancelar reserva -->
+<div class="modal-overlay" id="cancelModal">
+  <div class="modal">
+    <div class="modal-title">Cambiar Reserva</div>
+    <div class="modal-desc" id="cancelModalDesc"></div>
+    <button class="btn btn-danger" onclick="confirmCancel()">Sí, liberar este hueco</button>
+    <button class="btn btn-secondary" onclick="closeModal('cancelModal')">Mantener reserva</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── CONSTANTES ───────────────────────────────────────────────────────────────
+const ADMIN_PASSWORD = 'liga2025';
+const MATCH_DUR_DEFAULT = 90;
+
+// ─── ESTADO ───────────────────────────────────────────────────────────────────
+let S = {
+  jornadas: [],   // { id, nombre, matches:[{p1,p2}] }
+  slots:    [],   // { id, jornadaId, date, time, duration, court, reservedBy, rival, reservedAt }
+  currentPlayer: null,
+  currentRival:  null,
+  adminLoggedIn: false,
+  pendingSlotId: null,
+  activeResumenJornada: null,
+  saving: false,
+};
+
+async function save() {
+  setSyncState('loading','Guardando...');
+  S.saving = true;
+  try {
+    const r = await fetch(GIST_API, { method:'PATCH', headers:G_HEADERS,
+      body: JSON.stringify({ files:{ [GIST_FILE]:{ content: JSON.stringify({ jornadas:S.jornadas, slots:S.slots }) } } }) });
+    if (!r.ok) throw new Error(r.status);
+    setSyncState('ok','Guardado ✓');
+    S.saving = false; return true;
+  } catch(e) { setSyncState('err','Error al guardar'); S.saving = false; showToast('⚠️ Error al guardar. Reintenta.'); return false; }
+}
+
+async function loadFromGist() {
+  setSyncState('loading','Sincronizando...');
+  try {
+    const r = await fetch(GIST_API + '?t=' + Date.now(), { headers: G_HEADERS });
+    if (!r.ok) throw new Error(r.status);
+    const g = await r.json();
+    const d = JSON.parse(g.files[GIST_FILE]?.content || '{"jornadas":[],"slots":[]}');
+    S.jornadas = d.jornadas || []; S.slots = d.slots || [];
+    setSyncState('ok','Conectado'); return true;
+  } catch(e) { setSyncState('err','Sin conexión'); return false; }
+}
+
+function setSyncState(state, label) {
+  const dot = document.getElementById('syncDot');
+  const lbl = document.getElementById('syncLabel');
+  if(dot) dot.className = 'sync-dot ' + state;
+  if(lbl) lbl.textContent = label;
+}
+
+// Init: load from Gist then start polling
+async function initApp() {
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+  await loadFromGist();
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  populateJugadorSelect();
+  setInterval(async () => {
+    if (S.saving) return;
+    if (!await loadFromGist()) return;
+    populateJugadorSelect();
+    if (S.currentPlayer) renderSlots();
+    if (S.adminLoggedIn) { renderAdminSlots(); renderAdminJornadas(); renderResumen(); }
+  }, 20000);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['jugador','admin'][i] === tab));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+}
+function switchSubtab(sub) {
+  document.querySelectorAll('.subtab').forEach((t,i) => t.classList.toggle('active', ['huecos','partidos','resumen'][i] === sub));
+  document.querySelectorAll('.admin-sub').forEach(s => s.classList.remove('active'));
+  document.getElementById('sub-' + sub).classList.add('active');
+  if (sub === 'resumen') renderResumen();
+  if (sub === 'huecos')  renderAdminSlots();
+  if (sub === 'partidos') renderAdminJornadas();
+}
+
+// ─── JUGADOR LOGIN ────────────────────────────────────────────────────────────
+function getAllPlayers() {
+  const set = new Set();
+  S.jornadas.forEach(j => j.matches.forEach(m => { set.add(m.p1); set.add(m.p2); }));
+  return [...set].sort();
+}
+
+function populateJugadorSelect() {
+  const sel = document.getElementById('selJugador');
+  const players = getAllPlayers();
+  sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
+  players.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+}
+
+function onSelectJugador() {
+  const jugador = document.getElementById('selJugador').value;
+  const rivalSel = document.getElementById('selRival');
+  rivalSel.innerHTML = '';
+  if (!jugador) { rivalSel.innerHTML = '<option value="">— Selecciona primero tu nombre —</option>'; rivalSel.disabled = true; return; }
+
+  // Find all rivals for this player across all jornadas
+  const rivals = [];
+  S.jornadas.forEach(j => j.matches.forEach(m => {
+    if (m.p1 === jugador) rivals.push(m.p2);
+    if (m.p2 === jugador) rivals.push(m.p1);
+  }));
+  const uniqueRivals = [...new Set(rivals)];
+
+  if (uniqueRivals.length === 0) {
+    rivalSel.innerHTML = '<option value="">Sin rival asignado</option>';
+    rivalSel.disabled = true;
+    return;
+  }
+  rivalSel.disabled = false;
+  if (uniqueRivals.length === 1) {
+    rivalSel.innerHTML = `<option value="${uniqueRivals[0]}">${uniqueRivals[0]}</option>`;
+  } else {
+    rivalSel.innerHTML = '<option value="">— Selecciona rival —</option>';
+    uniqueRivals.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; rivalSel.appendChild(o); });
+  }
+}
+
+function loginJugador() {
+  const nombre = document.getElementById('selJugador').value;
+  const rival  = document.getElementById('selRival').value;
+  if (!nombre) { showToast('Selecciona tu nombre'); return; }
+  if (!rival)  { showToast('Selecciona tu rival'); return; }
+
+  // Check this matchup exists
+  const valid = S.jornadas.some(j => j.matches.some(m =>
+    (m.p1 === nombre && m.p2 === rival) || (m.p2 === nombre && m.p1 === rival)
+  ));
+  if (!valid) { showToast('Ese enfrentamiento no está registrado'); return; }
+
+  S.currentPlayer = nombre;
+  S.currentRival  = rival;
+  document.getElementById('jugadorLogin').style.display = 'none';
+  document.getElementById('jugadorHuecos').style.display = 'block';
+  document.getElementById('jugadorBienvenida').textContent = 'Hola, ' + nombre.split(' ')[0];
+  renderSlots();
+}
+
+function logoutJugador() {
+  S.currentPlayer = null; S.currentRival = null;
+  document.getElementById('jugadorLogin').style.display = 'block';
+  document.getElementById('jugadorHuecos').style.display = 'none';
+  document.getElementById('selJugador').value = '';
+  document.getElementById('selRival').innerHTML = '<option value="">— Selecciona primero tu nombre —</option>';
+  document.getElementById('selRival').disabled = true;
+}
+
+// ─── ADMIN LOGIN ──────────────────────────────────────────────────────────────
+function loginAdmin() {
+  if (document.getElementById('inputAdminPass').value === ADMIN_PASSWORD) {
+    S.adminLoggedIn = true;
+    document.getElementById('adminLock').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    document.getElementById('newSlotDate').value = new Date().toISOString().split('T')[0];
+    renderAdminSlots();
+    renderAdminJornadas();
+    populateJornadaSelect('newSlotJornada');
+  } else { showToast('Contraseña incorrecta'); }
+}
+function logoutAdmin() {
+  S.adminLoggedIn = false;
+  document.getElementById('adminLock').style.display = 'block';
+  document.getElementById('adminPanel').style.display = 'none';
+  document.getElementById('inputAdminPass').value = '';
+}
+
+// ─── JORNADAS / PARTIDOS ──────────────────────────────────────────────────────
+function importMatches() {
+  const nombre = document.getElementById('newJornadaNombre').value.trim();
+  const text   = document.getElementById('importText').value.trim();
+  if (!nombre) { showToast('Pon un nombre a la jornada'); return; }
+  if (!text)   { showToast('Escribe al menos un partido'); return; }
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  const matches = [];
+  for (const line of lines) {
+    const parts = line.split(',').map(s => s.trim());
+    if (parts.length < 2 || !parts[0] || !parts[1]) { showToast(`Línea inválida: "${line}"`); return; }
+    matches.push({ p1: parts[0], p2: parts[1] });
+  }
+  S.jornadas.push({ id: Date.now().toString(), nombre, matches });
+  save();
+  document.getElementById('newJornadaNombre').value = '';
+  document.getElementById('importText').value = '';
+  renderAdminJornadas();
+  populateJornadaSelect('newSlotJornada');
+  populateJugadorSelect();
+  showToast(`✓ Jornada "${nombre}" importada (${matches.length} partidos)`);
+}
+
+function deleteJornada(id) {
+  if (!confirm('¿Eliminar esta jornada y sus partidos?')) return;
+  S.jornadas = S.jornadas.filter(j => j.id !== id);
+  save();
+  renderAdminJornadas();
+  populateJornadaSelect('newSlotJornada');
+  populateJugadorSelect();
+  showToast('Jornada eliminada');
+}
+
+function renderAdminJornadas() {
+  const c = document.getElementById('adminJornadaList');
+  if (!S.jornadas.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📋</span>Sin jornadas importadas.</div>'; return; }
+  c.innerHTML = '';
+  S.jornadas.forEach(j => {
+    const div = document.createElement('div');
+    div.className = 'admin-row';
+    div.style.flexDirection = 'column';
+    div.style.alignItems = 'flex-start';
+    div.innerHTML = `
+      <div style="display:flex;justify-content:space-between;width:100%;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px;font-weight:600">${j.nombre}</span>
+        <button class="btn btn-danger btn-sm" onclick="deleteJornada('${j.id}')">Eliminar</button>
+      </div>
+      ${j.matches.map(m => `<div style="font-size:11px;color:var(--white-dim);margin-bottom:3px">🎾 ${m.p1} <span style="color:var(--clay-light)">vs</span> ${m.p2}</div>`).join('')}
+    `;
+    c.appendChild(div);
+  });
+}
+
+function populateJornadaSelect(selId) {
+  const sel = document.getElementById(selId);
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Selecciona jornada —</option>';
+  S.jornadas.forEach(j => { const o = document.createElement('option'); o.value = j.id; o.textContent = j.nombre; sel.appendChild(o); });
+  if (cur) sel.value = cur;
+}
+
+// ─── SLOTS ────────────────────────────────────────────────────────────────────
+function addSlot() {
+  const jornadaId = document.getElementById('newSlotJornada').value;
+  const date      = document.getElementById('newSlotDate').value;
+  const time      = document.getElementById('newSlotTime').value;
+  const duration  = parseInt(document.getElementById('newSlotDuration').value);
+  const court     = document.getElementById('newSlotCourt').value.trim();
+  if (!jornadaId || !date || !time || !court) { showToast('Rellena todos los campos'); return; }
+  S.slots.push({ id: Date.now().toString(), jornadaId, date, time, duration, court, reservedBy: null, rival: null, reservedAt: null });
+  S.slots.sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+  save();
+  renderAdminSlots();
+  showToast('✓ Hueco publicado');
+  document.getElementById('newSlotTime').value = '';
+  document.getElementById('newSlotCourt').value = '';
+}
+
+function deleteSlot(id) {
+  const s = S.slots.find(x => x.id === id);
+  if (s?.reservedBy && !confirm('Este hueco está reservado. ¿Eliminar igualmente?')) return;
+  S.slots = S.slots.filter(x => x.id !== id);
+  save(); renderAdminSlots(); renderResumen();
+  showToast('Hueco eliminado');
+}
+
+function adminCancelSlot(id) {
+  const s = S.slots.find(x => x.id === id);
+  if (!s || !confirm(`¿Liberar la reserva de ${s.reservedBy}?`)) return;
+  s.reservedBy = null; s.rival = null; s.reservedAt = null;
+  save(); renderAdminSlots(); renderResumen();
+  showToast('Reserva liberada');
+}
+
+function renderAdminSlots() {
+  if (!S.adminLoggedIn) return;
+  const c = document.getElementById('adminSlotList');
+  if (!S.slots.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>Sin huecos publicados.</div>'; return; }
+  const free = S.slots.filter(s => !s.reservedBy).length;
+  c.innerHTML = `<div class="counter">${free} libre(s) · ${S.slots.length - free} reservado(s)</div>`;
+  S.slots.forEach(slot => {
+    const j = S.jornadas.find(x => x.id === slot.jornadaId);
+    const taken = !!slot.reservedBy;
+    const div = document.createElement('div');
+    div.className = 'admin-row';
+    div.innerHTML = `
+      <div class="admin-row-info">
+        <div class="admin-row-name">${formatDate(slot.date)} · ${slot.time}</div>
+        <div class="admin-row-detail">${slot.court} · ${slot.duration||MATCH_DUR_DEFAULT}min · ${j?.nombre||'Sin jornada'}${taken?` · <strong style="color:var(--clay-light)">${slot.reservedBy} vs ${slot.rival}</strong>`:''}</div>
+      </div>
+      <div class="admin-btns">
+        ${taken ? `<button class="btn btn-secondary btn-sm" onclick="adminCancelSlot('${slot.id}')">Liberar</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="deleteSlot('${slot.id}')">✕</button>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+// ─── RESUMEN ──────────────────────────────────────────────────────────────────
+function renderResumen() {
+  if (!S.adminLoggedIn) return;
+  const pills = document.getElementById('resumenPills');
+  const content = document.getElementById('resumenContent');
+
+  if (!S.jornadas.length) {
+    pills.innerHTML = '';
+    content.innerHTML = '<div class="empty"><span class="empty-icon">📊</span>Sin jornadas registradas todavía.</div>';
+    return;
+  }
+
+  // Pills
+  if (!S.activeResumenJornada || !S.jornadas.find(j => j.id === S.activeResumenJornada)) {
+    S.activeResumenJornada = S.jornadas[S.jornadas.length - 1].id;
+  }
+  pills.innerHTML = '';
+  S.jornadas.forEach(j => {
+    const btn = document.createElement('button');
+    btn.className = 'jpill' + (j.id === S.activeResumenJornada ? ' active' : '');
+    btn.textContent = j.nombre;
+    btn.onclick = () => { S.activeResumenJornada = j.id; renderResumen(); };
+    pills.appendChild(btn);
+  });
+
+  const jornada = S.jornadas.find(j => j.id === S.activeResumenJornada);
+  if (!jornada) { content.innerHTML = ''; return; }
+
+  const total = jornada.matches.length;
+  const done  = jornada.matches.filter(m => {
+    return S.slots.some(s => s.reservedBy &&
+      ((s.reservedBy === m.p1 && s.rival === m.p2) || (s.reservedBy === m.p2 && s.rival === m.p1)));
+  }).length;
+
+  content.innerHTML = `<div class="counter" style="text-align:left;margin-bottom:12px">${done} de ${total} partidos con hueco reservado</div>`;
+
+  jornada.matches.forEach(m => {
+    const slot = S.slots.find(s => s.reservedBy &&
+      ((s.reservedBy === m.p1 && s.rival === m.p2) || (s.reservedBy === m.p2 && s.rival === m.p1)));
+    const div = document.createElement('div');
+    div.className = 'summary-row';
+    div.innerHTML = `
+      <div class="summary-status">${slot ? '✅' : '❌'}</div>
+      <div class="summary-info">
+        <div class="summary-players">${m.p1} <span style="color:var(--clay-light);font-size:10px">vs</span> ${m.p2}</div>
+        ${slot
+          ? `<div class="summary-slot">📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}</div>`
+          : `<div class="summary-pending">Sin hueco reservado</div>`}
+      </div>`;
+    content.appendChild(div);
+  });
+}
+
+// ─── BOOKING ──────────────────────────────────────────────────────────────────
+function openBooking(slotId) {
+  const slot = S.slots.find(s => s.id === slotId);
+  if (!slot) return;
+  S.pendingSlotId = slotId;
+  document.getElementById('bookingModalDesc').innerHTML =
+    `<strong>${S.currentPlayer}</strong> vs <strong>${S.currentRival}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}`;
+  openModal('bookingModal');
+}
+
+function confirmBooking() {
+  const slot = S.slots.find(s => s.id === S.pendingSlotId);
+  if (!slot || slot.reservedBy) { showToast('Este hueco ya no está disponible'); closeModal('bookingModal'); return; }
+  slot.reservedBy = S.currentPlayer; slot.rival = S.currentRival; slot.reservedAt = Date.now();
+  save(); closeModal('bookingModal'); renderSlots(); renderAdminSlots(); renderResumen();
+  showSuccessModal(slot);
+}
+
+function showSuccessModal(slot) {
+  document.getElementById('successModalDesc').innerHTML =
+    `<strong>${slot.reservedBy}</strong> vs <strong>${slot.rival}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}`;
+  document.getElementById('calIos').href    = buildIcs(slot);
+  document.getElementById('calGoogle').href = buildGoogle(slot);
+  openModal('successModal');
+}
+
+function openCancelModal(slotId) {
+  const slot = S.slots.find(s => s.id === slotId);
+  if (!slot) return;
+  const rem = 24*3600000 - (Date.now() - slot.reservedAt);
+  if (rem <= 0) { showToast('Las 24h para cambiar han expirado'); return; }
+  S.pendingSlotId = slotId;
+  const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
+  document.getElementById('cancelModalDesc').innerHTML =
+    `¿Seguro que quieres liberar el hueco del <strong>${formatDate(slot.date)}</strong> a las <strong>${slot.time}</strong>?<br><br>Te quedan <strong>${h}h ${m}min</strong> para cambiarlo.`;
+  openModal('cancelModal');
+}
+
+function confirmCancel() {
+  const slot = S.slots.find(s => s.id === S.pendingSlotId);
+  if (slot) { slot.reservedBy = null; slot.rival = null; slot.reservedAt = null; save(); renderSlots(); renderAdminSlots(); renderResumen(); showToast('Hueco liberado'); }
+  closeModal('cancelModal');
+}
+
+// ─── RENDER SLOTS (JUGADOR) ───────────────────────────────────────────────────
+function renderSlots() {
+  const c = document.getElementById('slotList');
+
+  // Anti-piracy: check if this matchup already has a slot reserved (regardless of who entered)
+  const matchupReserved = S.slots.find(s => s.reservedBy &&
+    ((s.reservedBy === S.currentPlayer && s.rival === S.currentRival) ||
+     (s.reservedBy === S.currentRival  && s.rival === S.currentPlayer)));
+
+  // Also find slot where currentPlayer is the one who booked
+  const mySlot = S.slots.find(s => s.reservedBy === S.currentPlayer && s.rival === S.currentRival);
+
+  if (!S.slots.length) {
+    c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>La organización aún no ha publicado huecos.</div>';
+    return;
+  }
+
+  c.innerHTML = '';
+
+  // If already reserved by the other player (piracy detected)
+  if (matchupReserved && !mySlot) {
+    const slot = matchupReserved;
+    c.innerHTML = `
+      <div class="blocked-notice">
+        <h3>🔒 Partido ya reservado</h3>
+        <p>Tu rival <strong>${S.currentRival}</strong> ya ha reservado este partido:<br><br>
+        📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${slot.court}</p>
+      </div>`;
+    // Still show calendar buttons if within 24h they can ask to change
+    const rem = 24*3600000 - (Date.now() - slot.reservedAt);
+    if (rem > 0) {
+      const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
+      c.innerHTML += `<div class="info-box-yellow">⏱ La reserva puede cambiarse durante las próximas ${h}h ${m}min. Si no estás de acuerdo con el hueco elegido, habla con tu rival.</div>`;
+    } else {
+      c.innerHTML += `<div class="info-box">🔒 La reserva ya es inamovible (han pasado las 24h).</div>`;
+    }
+    return;
+  }
+
+  S.slots.forEach(slot => {
+    const isMine  = slot.reservedBy === S.currentPlayer && slot.rival === S.currentRival;
+    const isTaken = slot.reservedBy && !isMine;
+    const rem     = isMine ? 24*3600000 - (Date.now() - slot.reservedAt) : 0;
+    const canChange = isMine && rem > 0;
+    const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
+
+    let badge='', action='', extra='', calBtns='';
+    if (isMine) {
+      badge = '<span class="badge badge-mine">⭐ Tu reserva</span>';
+      calBtns = `<div class="cal-row"><a href="#" onclick="event.preventDefault();showSuccessModal(S.slots.find(s=>s.id==='${slot.id}'))" class="btn-cal btn-cal-ios">🍎 Apple</a><a href="#" onclick="event.preventDefault();showSuccessModal(S.slots.find(s=>s.id==='${slot.id}'))" class="btn-cal btn-cal-google">📅 Google</a></div>`;
+      extra = canChange
+        ? `<div class="slot-timer">⏱ Puedes cambiarlo ${h}h ${m}min más</div>`
+        : `<div class="slot-timer" style="color:var(--red)">🔒 Reserva fija</div>`;
+      if (canChange) action = `<button class="btn btn-danger" style="margin-top:9px" onclick="openCancelModal('${slot.id}')">Cambiar reserva</button>`;
+    } else if (isTaken) {
+      badge = '<span class="badge badge-taken">Ocupado</span>';
+    } else {
+      badge = '<span class="badge badge-free">Disponible</span>';
+      if (!matchupReserved) action = `<button class="btn btn-primary" style="margin-top:9px" onclick="openBooking('${slot.id}')">Reservar este hueco</button>`;
+    }
+
+    const card = document.createElement('div');
+    card.className = `slot-card ${isMine?'mine':isTaken?'taken':'available'}`;
+    card.innerHTML = `
+      <div class="slot-meta">
+        <div><div class="slot-day">${formatDate(slot.date)}</div><div class="slot-hour">${slot.time} · ${slot.duration||MATCH_DUR_DEFAULT}min</div></div>
+        <div class="slot-court-label">🎾 ${slot.court}</div>
+      </div>
+      ${badge}${extra}${calBtns}${action}`;
+    c.appendChild(card);
+  });
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────────────────────────
+function buildIcs(slot) {
+  const dur = slot.duration || MATCH_DUR_DEFAULT;
+  const [y,mo,d] = slot.date.split('-').map(Number);
+  const [hh,mm]  = slot.time.split(':').map(Number);
+  const pad = n => String(n).padStart(2,'0');
+  const dtS = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+  const end = new Date(y, mo-1, d, hh, mm+dur);
+  const dtE = `${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+  const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Liga Tenis//ES\r\nBEGIN:VEVENT\r\nUID:${slot.id}@ligatenis\r\nDTSTART:${dtS}\r\nDTEND:${dtE}\r\nSUMMARY:🎾 ${slot.reservedBy} vs ${slot.rival}\r\nLOCATION:${slot.court}\r\nDESCRIPTION:Partido de liga de tenis\r\nEND:VEVENT\r\nEND:VCALENDAR`;
+  return URL.createObjectURL(new Blob([ics], { type: 'text/calendar;charset=utf-8' }));
+}
+function buildGoogle(slot) {
+  const dur = slot.duration || MATCH_DUR_DEFAULT;
+  const [y,mo,d] = slot.date.split('-').map(Number);
+  const [hh,mm]  = slot.time.split(':').map(Number);
+  const pad = n => String(n).padStart(2,'0');
+  const dtS = `${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`;
+  const end = new Date(y, mo-1, d, hh, mm+dur);
+  const dtE = `${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`🎾 ${slot.reservedBy} vs ${slot.rival}`)}&dates=${dtS}/${dtE}&location=${encodeURIComponent(slot.court)}&details=${encodeURIComponent('Partido de liga de tenis')}`;
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function formatDate(ds) {
+  const [y,m,d] = ds.split('-');
+  return new Date(y,m-1,d).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase());
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+let _tt;
+function showToast(msg) {
+  const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(_tt); _tt = setTimeout(() => t.classList.remove('show'), 2800);
+}
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if (e.target===o) o.classList.remove('open'); }));
+
+initApp();
+</script>
+</body>
+</html>
