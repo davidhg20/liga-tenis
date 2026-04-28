@@ -1,14 +1,16 @@
-<!-- VERSIÓN FINAL COMPLETA Y ESTABLE - SOLO CAMBIA TU SUPABASE KEY -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Liga Tenis</title>
+<title>Liga Tenis Final</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
 body{font-family:'DM Sans';background:#f0f5fb;margin:0}
 .app{max-width:480px;margin:auto;padding:16px}
+.tabs{display:flex;margin-bottom:10px}
+.tab{flex:1;padding:10px;border:none;cursor:pointer}
+.tab.active{background:#1a6fd4;color:#fff}
 .card{background:#fff;padding:12px;margin:8px 0;border-radius:10px}
 .btn{padding:10px;border:none;border-radius:8px;margin-top:6px;width:100%;cursor:pointer}
 .btn-primary{background:#1a6fd4;color:#fff}
@@ -19,21 +21,35 @@ input,textarea,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;b
 <body>
 <div class="app">
 
-<h2>Liga Tenis</h2>
+<div class="tabs">
+<button class="tab active" onclick="switchTab('jugador',this)">Jugador</button>
+<button class="tab" onclick="switchTab('admin',this)">Organización</button>
+</div>
 
+<div id="jugador">
+<h3>Entrar como jugador</h3>
+<select id="selJugador"></select>
+<select id="selRival"></select>
+<button class="btn btn-primary" onclick="loginJugador()">Entrar</button>
+
+<div id="panelJugador" style="display:none">
+<h3>Huecos disponibles</h3>
+<div id="slotsJugador"></div>
+</div>
+</div>
+
+<div id="admin" style="display:none">
 <h3>Importar jornada</h3>
-<input id="jornadaNombre" placeholder="Nombre jornada">
-<textarea id="jornadaText" placeholder="Jugador1, Jugador2"></textarea>
+<input id="jornadaNombre">
+<textarea id="jornadaText"></textarea>
 <button class="btn btn-primary" onclick="importMatches(this)">Importar</button>
 
 <h3>Añadir hueco</h3>
 <input type="date" id="date">
 <input type="time" id="time">
-<input placeholder="Pista" id="court">
-<button class="btn btn-primary" onclick="addSlot(this)">Añadir hueco</button>
-
-<h3>Reservas</h3>
-<div id="slots"></div>
+<input id="court" placeholder="Pista">
+<button class="btn btn-primary" onclick="addSlot(this)">Añadir</button>
+</div>
 
 </div>
 
@@ -43,133 +59,123 @@ const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6
 const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 
 let S={jornadas:[],slots:[]};
+let currentPlayer=null,currentRival=null;
+
+function switchTab(t,btn){
+ document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+ btn.classList.add('active');
+ jugador.style.display=t==='jugador'?'block':'none';
+ admin.style.display=t==='admin'?'block':'none';
+}
 
 async function load(){
  try{
   const r=await fetch(URL,{headers:H});
   const d=await r.json();
   if(d.length && d[0].data) S=d[0].data;
- }catch(e){console.log('load error',e)}
- render();
+ }catch(e){console.log(e)}
+ populatePlayers();
+ renderJugador();
 }
 
 async function save(){
  try{
   const r=await fetch(URL,{method:'PATCH',headers:H,body:JSON.stringify({data:S})});
   return r.ok;
- }catch(e){console.log('save error',e);return false}
+ }catch{return false}
 }
 
-async function importMatches(btn){
- const nombre=jornadaNombre.value.trim();
- const text=jornadaText.value.trim();
- if(!nombre||!text) return alert('Faltan datos');
- if(S.jornadas.some(j=>j.nombre===nombre)) return alert('Jornada duplicada');
-
- let matches=[];
- try{
-  matches=text.split('\n').map(l=>{
-    const p=l.split(',').map(x=>x.trim());
-    if(p.length!==2) throw new Error(l);
-    return {p1:p[0],p2:p[1]};
-  });
- }catch(e){return alert('Error en línea: '+e.message)}
-
- btn.disabled=true;btn.textContent='Guardando...';
-
- const jornada={id:Date.now()+Math.random(),nombre,matches};
- S.jornadas.push(jornada);
-
- const ok=await save();
- btn.disabled=false;btn.textContent='Importar';
-
- if(!ok) S.jornadas.pop();
- else{
-  jornadaNombre.value='';
-  jornadaText.value='';
-  render();
- }
+function getPlayers(){
+ const set=new Set();
+ S.jornadas.forEach(j=>j.matches.forEach(m=>{set.add(m.p1);set.add(m.p2)}));
+ return [...set];
 }
 
-async function addSlot(btn){
- const d=date.value,t=time.value,c=court.value;
- if(!d||!t||!c) return alert('Faltan datos');
+function populatePlayers(){
+ selJugador.innerHTML='<option value="">Jugador</option>';
+ getPlayers().forEach(p=>{
+  const o=document.createElement('option');o.value=p;o.textContent=p;selJugador.appendChild(o);
+ });
+}
 
- btn.disabled=true;btn.textContent='Guardando...';
+selJugador.onchange=()=>{
+ const p=selJugador.value;
+ selRival.innerHTML='';
+ const rivals=new Set();
+ S.jornadas.forEach(j=>j.matches.forEach(m=>{
+  if(m.p1===p) rivals.add(m.p2);
+  if(m.p2===p) rivals.add(m.p1);
+ }));
+ rivals.forEach(r=>{
+  const o=document.createElement('option');o.value=r;o.textContent=r;selRival.appendChild(o);
+ });
+}
 
- const slot={id:Date.now()+Math.random(),date:d,time:t,court:c,reservedBy:null,rival:null};
- S.slots.push(slot);
+function loginJugador(){
+ currentPlayer=selJugador.value;
+ currentRival=selRival.value;
+ if(!currentPlayer||!currentRival) return alert('Selecciona');
+ panelJugador.style.display='block';
+ renderJugador();
+}
 
- const ok=await save();
- btn.disabled=false;btn.textContent='Añadir hueco';
+function renderJugador(){
+ slotsJugador.innerHTML='';
+ S.slots.forEach(s=>{
+  const d=document.createElement('div');d.className='card';
+  d.innerHTML=`${s.date} ${s.time} ${s.court}`;
 
- if(!ok) S.slots.pop(); else render();
+  if(s.reservedBy){
+    d.innerHTML+=`<br>Ocupado: ${s.reservedBy}`;
+  }else{
+    const b=document.createElement('button');b.className='btn btn-primary';b.textContent='Reservar';
+    b.onclick=()=>reserve(s.id,b);
+    d.appendChild(b);
+  }
+  slotsJugador.appendChild(d);
+ });
 }
 
 async function reserve(id,btn){
  const s=S.slots.find(x=>x.id===id);
  if(!s||s.reservedBy) return;
 
- const name=prompt('Tu nombre');
- const rival=prompt('Rival');
- if(!name||!rival) return;
-
- btn.disabled=true;btn.textContent='Guardando...';
-
- const backup={...s};
- s.reservedBy=name;
- s.rival=rival;
+ btn.disabled=true;
+ s.reservedBy=currentPlayer;
+ s.rival=currentRival;
 
  const ok=await save();
-
- if(!ok) Object.assign(s,backup);
- render();
+ if(!ok){s.reservedBy=null;s.rival=null}
+ renderJugador();
 }
 
-async function cancel(id,btn){
- const s=S.slots.find(x=>x.id===id);
- if(!s) return;
+async function importMatches(btn){
+ const n=jornadaNombre.value.trim();
+ const t=jornadaText.value.trim();
+ if(!n||!t) return alert('faltan datos');
 
- btn.disabled=true;btn.textContent='Cancelando...';
-
- const backup={...s};
- s.reservedBy=null;
- s.rival=null;
-
- const ok=await save();
-
- if(!ok) Object.assign(s,backup);
- render();
-}
-
-function render(){
- slots.innerHTML='';
-
- S.slots.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-
- S.slots.forEach(s=>{
-  const d=document.createElement('div');
-  d.className='card';
-
-  d.innerHTML=`📅 ${s.date} ⏰ ${s.time} 🎾 ${s.court}`;
-
-  if(s.reservedBy){
-    d.innerHTML+=`<br>✅ ${s.reservedBy} vs ${s.rival}`;
-    const b=document.createElement('button');
-    b.className='btn btn-danger';
-    b.textContent='Cancelar';
-    b.onclick=()=>cancel(s.id,b);
-    d.appendChild(b);
-  }else{
-    const b=document.createElement('button');
-    b.className='btn btn-primary';
-    b.textContent='Reservar';
-    b.onclick=()=>reserve(s.id,b);
-    d.appendChild(b);
-  }
-
-  slots.appendChild(d);
+ const matches=t.split('\n').map(l=>{
+  const p=l.split(',').map(x=>x.trim());
+  return {p1:p[0],p2:p[1]};
  });
+
+ btn.disabled=true;
+ S.jornadas.push({id:Date.now()+Math.random(),nombre:n,matches});
+ const ok=await save();
+ btn.disabled=false;
+ if(ok){populatePlayers()}else S.jornadas.pop();
+}
+
+async function addSlot(btn){
+ const d=date.value,t=time.value,c=court.value;
+ if(!d||!t||!c) return alert('faltan datos');
+
+ btn.disabled=true;
+ const slot={id:Date.now()+Math.random(),date:d,time:t,court:c,reservedBy:null,rival:null};
+ S.slots.push(slot);
+ const ok=await save();
+ btn.disabled=false;
+ if(!ok) S.slots.pop();
 }
 
 load();
