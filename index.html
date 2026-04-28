@@ -1,723 +1,178 @@
+<!-- VERSIÓN FINAL COMPLETA Y ESTABLE - SOLO CAMBIA TU SUPABASE KEY -->
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Liga de Tenis · Reserva de Partidos</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
+<title>Liga Tenis</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --blue:#1a6fd4; --blue-dark:#0f4fa3; --blue-light:#4d9de0; --blue-xlight:#e8f2fc;
-    --bg:#f0f5fb; --bg-mid:#ffffff; --bg-light:#f7faff;
-    --text:#1a2a3a; --text-dim:#6b85a0;
-    --green:#2e9e6b; --yellow:#e0900a; --red:#d63b3b;
-    --line:rgba(26,111,212,0.10);
-    --shadow:0 2px 12px rgba(26,111,212,0.08);
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
-  .app{max-width:480px;margin:0 auto;padding:0 0 80px}
-
-  /* HEADER */
-  .header{background:linear-gradient(150deg,var(--blue-dark) 0%,var(--blue) 60%,var(--blue-light) 100%);padding:0 20px 20px;position:relative;overflow:hidden}
-  .header::before{content:'';position:absolute;right:-40px;top:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.06)}
-  .header::after{content:'';position:absolute;right:20px;bottom:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.04)}
-
-  /* LOGO AREA */
-  .header-top{display:flex;align-items:center;justify-content:space-between;padding-top:24px;margin-bottom:16px}
-  .club-logo{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
-  .club-logo img{width:100%;height:100%;object-fit:cover}
-  .club-logo-placeholder{font-size:28px}
-  .header-text{flex:1;padding-left:14px}
-  .header-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:3px}
-  .header-title{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:#fff}
-  .header-sub{margin-top:6px;font-size:12px;color:rgba(255,255,255,.7);font-weight:300;display:flex;align-items:center;gap:6px}
-
-  /* TABS */
-  .tabs{display:flex;background:#fff;position:sticky;top:0;z-index:10;border-bottom:2px solid var(--line);box-shadow:var(--shadow)}
-  .tab{flex:1;padding:13px 4px;text-align:center;font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-dim);cursor:pointer;border:none;border-bottom:2px solid transparent;background:none;transition:all .2s;margin-bottom:-2px}
-  .tab.active{color:var(--blue);border-bottom-color:var(--blue)}
-
-  .section{display:none;padding:18px}.section.active{display:block}
-  .sec-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--blue);margin-bottom:3px}
-  .sec-desc{font-size:11px;color:var(--text-dim);margin-bottom:16px;line-height:1.5}
-
-  /* CARDS */
-  .slot-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:15px;margin-bottom:9px;box-shadow:var(--shadow)}
-  .slot-card.available{border-left:3px solid var(--green)}
-  .slot-card.taken{border-left:3px solid var(--text-dim);opacity:.7}
-  .slot-card.mine{border-left:3px solid var(--blue)}
-  .slot-meta{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .slot-day{font-family:'Bebas Neue',sans-serif;font-size:17px;line-height:1;color:var(--text)}
-  .slot-hour{font-size:11px;color:var(--text-dim);margin-top:2px}
-  .slot-court-label{font-size:11px;color:var(--text-dim);text-align:right}
-  .badge{display:inline-block;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 8px;border-radius:20px;font-weight:600;margin-top:9px}
-  .badge-free{background:rgba(46,158,107,.12);color:var(--green)}
-  .badge-taken{background:rgba(107,133,160,.12);color:var(--text-dim)}
-  .badge-mine{background:rgba(26,111,212,.12);color:var(--blue)}
-  .slot-timer{margin-top:5px;font-size:10px;color:var(--yellow)}
-
-  /* CALENDAR BUTTONS */
-  .cal-row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
-  .btn-cal{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;border:none;font-family:'DM Sans',sans-serif;transition:all .15s}
-  .btn-cal-ios{background:rgba(26,111,212,.08);color:var(--blue);border:1px solid rgba(26,111,212,.2)}
-  .btn-cal-google{background:rgba(66,133,244,.08);color:#1a6fd4;border:1px solid rgba(66,133,244,.2)}
-
-  /* BUTTONS */
-  .btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;letter-spacing:.3px;cursor:pointer;transition:all .15s;text-align:center;margin-top:9px}
-  .btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{background:var(--blue-dark)}
-  .btn-secondary{background:transparent;color:var(--text-dim);border:1px solid rgba(107,133,160,.3)}
-  .btn-danger{background:rgba(214,59,59,.08);color:var(--red);border:1px solid rgba(214,59,59,.2)}
-  .btn-sm{display:inline-block;width:auto;padding:6px 12px;font-size:11px;margin-top:0}
-  .btn:disabled{opacity:.45;cursor:not-allowed}
-
-  /* FORMS */
-  .fg{margin-bottom:13px}
-  label{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:5px}
-  input,select,textarea{width:100%;background:#fff;border:1px solid rgba(107,133,160,.25);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s}
-  input:focus,select:focus,textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(26,111,212,.08)}
-  select option{background:#fff}
-  textarea{resize:vertical;min-height:90px;line-height:1.5}
-  select:disabled{opacity:.5;cursor:not-allowed}
-
-  /* ADMIN ITEMS */
-  .admin-row{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin-bottom:7px;box-shadow:var(--shadow)}
-  .admin-row-info{flex:1}.admin-row-name{font-size:13px;font-weight:500;color:var(--text)}
-  .admin-row-detail{font-size:10px;color:var(--text-dim);margin-top:2px}
-  .admin-btns{display:flex;gap:6px;align-items:center;flex-shrink:0}
-
-  /* SUMMARY */
-  .summary-row{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:7px;box-shadow:var(--shadow)}
-  .summary-status{font-size:18px;flex-shrink:0}
-  .summary-info{flex:1}.summary-players{font-size:13px;font-weight:500;color:var(--text)}
-  .summary-slot{font-size:11px;color:var(--text-dim);margin-top:2px}
-  .summary-pending{font-size:11px;color:var(--red);margin-top:2px}
-
-  /* JORNADA PILLS */
-  .jornada-pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:14px}
-  .jpill{font-size:11px;padding:5px 13px;border-radius:20px;border:1px solid rgba(26,111,212,.2);color:var(--text-dim);cursor:pointer;transition:all .15s;background:#fff}
-  .jpill.active{background:var(--blue);border-color:var(--blue);color:#fff}
-
-  hr{border:none;border-top:1px solid var(--line);margin:18px 0}
-
-  /* INFO BOXES */
-  .info-box{background:rgba(26,111,212,.06);border:1px solid rgba(26,111,212,.2);border-radius:9px;padding:11px 13px;font-size:11px;color:var(--blue);margin-bottom:14px;line-height:1.5}
-  .info-box-yellow{background:rgba(224,144,10,.06);border:1px solid rgba(224,144,10,.2);border-radius:9px;padding:11px 13px;font-size:11px;color:var(--yellow);margin-bottom:14px;line-height:1.5}
-
-  /* MODAL */
-  .modal-overlay{position:fixed;inset:0;background:rgba(10,30,60,.5);z-index:50;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .25s}
-  .modal-overlay.open{opacity:1;pointer-events:all}
-  .modal{background:#fff;border-radius:20px 20px 0 0;padding:22px 19px 38px;width:100%;transform:translateY(30px);transition:transform .25s;max-width:480px;margin:0 auto}
-  .modal-overlay.open .modal{transform:translateY(0)}
-  .modal-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:5px;color:var(--blue)}
-  .modal-title-green{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1px;margin-bottom:5px;color:var(--green)}
-  .modal-desc{font-size:12px;color:var(--text-dim);margin-bottom:16px;line-height:1.6}
-
-  /* LOCK */
-  .lock-wrap{text-align:center;padding:28px 0}
-  .lock-icon{font-size:38px;margin-bottom:10px}
-  .lock-title{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--text-dim);margin-bottom:14px}
-
-  /* LOGIN CARD */
-  .login-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:var(--shadow)}
-  .login-title{font-family:'Bebas Neue',sans-serif;font-size:18px;margin-bottom:11px;color:var(--text-dim)}
-
-  /* EMPTY */
-  .empty{text-align:center;padding:36px 16px;color:var(--text-dim);font-size:12px;font-style:italic}
-  .empty-icon{font-size:32px;margin-bottom:9px;display:block}
-
-  /* BLOCKED */
-  .blocked-notice{background:rgba(214,59,59,.06);border:1px solid rgba(214,59,59,.2);border-radius:10px;padding:14px;margin-bottom:12px;text-align:center}
-  .blocked-notice h3{font-size:14px;color:var(--red);margin-bottom:6px}
-  .blocked-notice p{font-size:12px;color:var(--text-dim);line-height:1.5}
-
-  /* TOAST */
-  .toast{position:fixed;bottom:88px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:11px 18px;border-radius:28px;font-size:12px;opacity:0;transition:all .3s;z-index:100;white-space:nowrap;box-shadow:0 4px 18px rgba(0,0,0,.2)}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-  .counter{font-size:11px;color:var(--text-dim);text-align:right;margin-bottom:9px}
-  .success-icon{font-size:44px;text-align:center;display:block;margin-bottom:10px}
-
-  /* SUBTABS */
-  .subtabs{display:flex;margin-bottom:16px;background:#fff;border:1px solid var(--line);border-radius:9px;overflow:hidden;box-shadow:var(--shadow)}
-  .subtab{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);cursor:pointer;border:none;background:none;transition:all .2s}
-  .subtab.active{background:var(--blue);color:#fff}
-  .admin-sub{display:none}.admin-sub.active{display:block}
-
-  /* SYNC */
-  .sync-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);flex-shrink:0}
-  .sync-dot.ok{background:#7ee8b8}.sync-dot.err{background:#ff8080}.sync-dot.loading{background:#ffe080;animation:pulse .7s infinite}
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-
-  /* LOADING */
-  .loading-overlay{position:fixed;inset:0;background:rgba(240,245,251,.95);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px}
-  .loading-overlay.hidden{display:none}
-  .spinner{width:36px;height:36px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .loading-text{font-size:13px;color:var(--text-dim)}
+body{font-family:'DM Sans';background:#f0f5fb;margin:0}
+.app{max-width:480px;margin:auto;padding:16px}
+.card{background:#fff;padding:12px;margin:8px 0;border-radius:10px}
+.btn{padding:10px;border:none;border-radius:8px;margin-top:6px;width:100%;cursor:pointer}
+.btn-primary{background:#1a6fd4;color:#fff}
+.btn-danger{background:#d63b3b;color:#fff}
+input,textarea,select{width:100%;padding:10px;margin-top:6px;border-radius:8px;border:1px solid #ccc}
 </style>
 </head>
 <body>
-<!-- Loading -->
-<div class="loading-overlay hidden" id="loadingOverlay">
-  <div class="spinner"></div>
-  <div class="loading-text">Cargando datos...</div>
-</div>
-
 <div class="app">
-  <div class="header">
-    <div class="header-top">
-      <div class="header-text">
-        <div class="header-label">Temporada 2025</div>
-        <div class="header-title">Liga de Tenis</div>
-        <div class="header-sub">
-          <span id="syncLabel">Conectando...</span>
-          <span class="sync-dot loading" id="syncDot"></span>
-        </div>
-      </div>
-      <div class="club-logo" id="clubLogo">
-        <!-- Sustituye esta imagen por la URL del logo de tu club -->
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/Tennis_Racket_and_Balls.jpg/240px-Tennis_Racket_and_Balls.jpg" alt="Logo club" onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex'"/>
-        <span id="logoFallback" class="club-logo-placeholder" style="display:none">🎾</span>
-      </div>
-    </div>
-  </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('jugador')">Jugadores</button>
-    <button class="tab" onclick="switchTab('admin')">Organización</button>
-  </div>
+<h2>Liga Tenis</h2>
 
-  <!-- ═══════════════ JUGADOR ═══════════════ -->
-  <div class="section active" id="tab-jugador">
+<h3>Importar jornada</h3>
+<input id="jornadaNombre" placeholder="Nombre jornada">
+<textarea id="jornadaText" placeholder="Jugador1, Jugador2"></textarea>
+<button class="btn btn-primary" onclick="importMatches(this)">Importar</button>
 
-    <!-- Login -->
-    <div id="jugadorLogin">
-      <div style="height:14px"></div>
-      <div class="info-box">🎾 Primero acordad el hueco con tu rival. Luego uno de los dos reserva aquí.</div>
-      <div class="login-card">
-        <div class="login-title">¿Quién eres?</div>
-        <div class="fg">
-          <label>Tu nombre</label>
-          <select id="selJugador" onchange="onSelectJugador()">
-            <option value="">— Selecciona tu nombre —</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label>Tu rival</label>
-          <select id="selRival" disabled>
-            <option value="">— Selecciona primero tu nombre —</option>
-          </select>
-        </div>
-        <button class="btn btn-primary" onclick="loginJugador()">Ver huecos disponibles →</button>
-      </div>
-    </div>
+<h3>Añadir hueco</h3>
+<input type="date" id="date">
+<input type="time" id="time">
+<input placeholder="Pista" id="court">
+<button class="btn btn-primary" onclick="addSlot(this)">Añadir hueco</button>
 
-    <!-- Huecos -->
-    <div id="jugadorHuecos" style="display:none">
-      <div style="height:14px"></div>
-      <div class="sec-title" id="jugadorBienvenida">Hola, —</div>
-      <div class="sec-desc">Selecciona el hueco acordado con tu rival. Tienes <strong>24 horas</strong> para cambiarlo.</div>
-      <div id="slotList"></div>
-      <button class="btn btn-secondary" style="margin-top:8px" onclick="logoutJugador()">← Cambiar jugador</button>
-    </div>
+<h3>Reservas</h3>
+<div id="slots"></div>
 
-  </div>
-
-  <!-- ═══════════════ ADMIN ═══════════════ -->
-  <div class="section" id="tab-admin">
-    <div id="adminLock">
-      <div class="lock-wrap">
-        <div class="lock-icon">🔒</div>
-        <div class="lock-title">Acceso Organización</div>
-        <div class="fg"><input type="password" id="inputAdminPass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')loginAdmin()"/></div>
-        <button class="btn btn-primary" onclick="loginAdmin()">Entrar</button>
-      </div>
-    </div>
-
-    <div id="adminPanel" style="display:none">
-      <div style="height:14px"></div>
-
-      <div class="subtabs">
-        <button class="subtab active" onclick="switchSubtab('huecos')">Huecos</button>
-        <button class="subtab" onclick="switchSubtab('partidos')">Partidos</button>
-        <button class="subtab" onclick="switchSubtab('resumen')">Resumen</button>
-      </div>
-
-      <!-- SUBTAB: HUECOS -->
-      <div class="admin-sub active" id="sub-huecos">
-        <div class="sec-title">Añadir Hueco</div>
-        <div class="sec-desc">Publica huecos disponibles para que los jugadores los reserven.</div>
-        <div class="fg"><label>Jornada</label>
-          <select id="newSlotJornada" id="newSlotJornada">
-            <option value="">— Selecciona jornada —</option>
-          </select>
-        </div>
-        <div class="fg"><label>Fecha</label><input type="date" id="newSlotDate"/></div>
-        <div class="fg"><label>Hora</label><input type="time" id="newSlotTime"/></div>
-        <div class="fg"><label>Duración</label>
-          <select id="newSlotDuration">
-            <option value="60">60 min</option>
-            <option value="90" selected>90 min</option>
-            <option value="120">120 min</option>
-          </select>
-        </div>
-        <div class="fg"><label>Pista</label><input type="text" id="newSlotCourt" placeholder="Ej: Pista 1"/></div>
-        <button class="btn btn-primary" onclick="addSlot()">+ Publicar hueco</button>
-        <hr>
-        <div class="sec-title">Huecos Publicados</div>
-        <div id="adminSlotList"></div>
-      </div>
-
-      <!-- SUBTAB: PARTIDOS -->
-      <div class="admin-sub" id="sub-partidos">
-        <div class="sec-title">Importar Partidos</div>
-        <div class="sec-desc">Escribe o pega los enfrentamientos de una jornada. Un partido por línea, separado por coma:<br><strong>Jugador 1, Jugador 2</strong></div>
-        <div class="fg"><label>Nombre de la jornada</label><input type="text" id="newJornadaNombre" placeholder="Ej: Jornada 3, Cuartos de final..."/></div>
-        <div class="fg"><label>Partidos</label>
-          <textarea id="importText" placeholder="Carlos García, Marta López&#10;Pedro Ruiz, Ana Sánchez&#10;Luis Fernández, Carmen Torres"></textarea>
-        </div>
-        <button class="btn btn-primary" onclick="importMatches()">Importar partidos</button>
-        <hr>
-        <div class="sec-title">Jornadas Registradas</div>
-        <div id="adminJornadaList"></div>
-      </div>
-
-      <!-- SUBTAB: RESUMEN -->
-      <div class="admin-sub" id="sub-resumen">
-        <div class="sec-title">Resumen por Jornada</div>
-        <div class="sec-desc">Estado de reservas de cada partido. ✅ = hueco confirmado · ❌ = pendiente.</div>
-        <div class="jornada-pills" id="resumenPills"></div>
-        <div id="resumenContent"></div>
-      </div>
-
-      <hr>
-      <button class="btn btn-secondary" onclick="logoutAdmin()">Cerrar sesión admin</button>
-    </div>
-  </div>
 </div>
-
-<!-- Modal confirmar reserva -->
-<div class="modal-overlay" id="bookingModal">
-  <div class="modal">
-    <div class="modal-title">Confirmar Reserva</div>
-    <div class="modal-desc" id="bookingModalDesc"></div>
-    <div class="info-box">⏱ Tienes <strong>24 horas</strong> para cambiarla. Después queda fija.</div>
-    <button class="btn btn-primary" onclick="confirmBooking()">Confirmar reserva</button>
-    <button class="btn btn-secondary" onclick="closeModal('bookingModal')">Cancelar</button>
-  </div>
-</div>
-
-<!-- Modal éxito + calendario -->
-<div class="modal-overlay" id="successModal">
-  <div class="modal">
-    <span class="success-icon">✅</span>
-    <div class="modal-title-green">¡Partido Reservado!</div>
-    <div class="modal-desc" id="successModalDesc"></div>
-    <div>
-      <span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--white-dim);display:block;margin-bottom:7px">📅 Añadir a mi calendario</span>
-      <div class="cal-row">
-        <a id="calIos" href="#" class="btn-cal btn-cal-ios" target="_blank">🍎 Apple Calendar</a>
-        <a id="calGoogle" href="#" class="btn-cal btn-cal-google" target="_blank">📅 Google Calendar</a>
-      </div>
-      <div style="font-size:10px;color:var(--white-dim);margin-top:7px;line-height:1.5">Apple: descarga el .ics y ábrelo · Google: se abre en el navegador</div>
-    </div>
-    <button class="btn btn-secondary" style="margin-top:14px" onclick="closeModal('successModal')">Cerrar</button>
-  </div>
-</div>
-
-<!-- Modal cancelar reserva -->
-<div class="modal-overlay" id="cancelModal">
-  <div class="modal">
-    <div class="modal-title">Cambiar Reserva</div>
-    <div class="modal-desc" id="cancelModalDesc"></div>
-    <button class="btn btn-danger" onclick="confirmCancel()">Sí, liberar este hueco</button>
-    <button class="btn btn-secondary" onclick="closeModal('cancelModal')">Mantener reserva</button>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════════════════
-//  CONFIGURACIÓN SUPABASE
-// ══════════════════════════════════════════════════════
-const SB_URL  = 'https://yxtjgbbaizojnvzzudmn.supabase.co';
-const SB_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4dGpnYmJhaXpvam52enp1ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTY0MjksImV4cCI6MjA5Mjg5MjQyOX0.QDXFfajRX9gx3n05N6YDDcFlv5qlGn_SRFKAchEgses';
-const SB_HEADERS = { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
-const SB_ROW  = SB_URL + '/rest/v1/liga?id=eq.estado';
+const URL='https://yxtjgbbaizojnvzzudmn.supabase.co/rest/v1/liga?id=eq.estado';
+const KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl4dGpnYmJhaXpvam52enp1ZG1uIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzczMTY0MjksImV4cCI6MjA5Mjg5MjQyOX0.QDXFfajRX9gx3n05N6YDDcFlv5qlGn_SRFKAchEgses';
+const H={apikey:KEY,Authorization:'Bearer '+KEY,'Content-Type':'application/json'};
 
-// ─── CONSTANTES ───────────────────────────────────────────────────────────────
-const ADMIN_PASSWORD    = 'liga2025';
-const MATCH_DUR_DEFAULT = 90;
-const POLL_MS           = 20000;
+let S={jornadas:[],slots:[]};
 
-// ─── ESTADO ───────────────────────────────────────────────────────────────────
-let S = {
-  jornadas: [], slots: [],
-  currentPlayer: null, currentRival: null,
-  adminLoggedIn: false, pendingSlotId: null,
-  activeResumenJornada: null, saving: false,
-};
-
-// ── SUPABASE ────────────────────────────────────────────
-async function loadFromDB() {
-  setSyncState('loading', 'Sincronizando...');
-  try {
-    const r = await fetch(SB_ROW, { headers: SB_HEADERS });
-    if (!r.ok) throw new Error(r.status);
-    const rows = await r.json();
-    if (!rows.length) throw new Error('no rows');
-    const d = rows[0].data;
-    S.jornadas = d.jornadas || []; S.slots = d.slots || [];
-    setSyncState('ok', 'Conectado'); return true;
-  } catch(e) { setSyncState('err', 'Sin conexión'); return false; }
+async function load(){
+ try{
+  const r=await fetch(URL,{headers:H});
+  const d=await r.json();
+  if(d.length && d[0].data) S=d[0].data;
+ }catch(e){console.log('load error',e)}
+ render();
 }
 
-async function save() {
-  S.saving = true;
-  setSyncState('loading', 'Guardando...');
-  try {
-    const body = JSON.stringify({ data: { jornadas: S.jornadas, slots: S.slots } });
-    const r = await fetch(SB_ROW, { method: 'PATCH', headers: SB_HEADERS, body });
-    if (!r.ok) throw new Error(r.status);
-    setSyncState('ok', 'Guardado ✓'); S.saving = false; return true;
-  } catch(e) { setSyncState('err', 'Error al guardar'); S.saving = false; showToast('⚠️ Error al guardar. Reintenta.'); return false; }
+async function save(){
+ try{
+  const r=await fetch(URL,{method:'PATCH',headers:H,body:JSON.stringify({data:S})});
+  return r.ok;
+ }catch(e){console.log('save error',e);return false}
 }
 
-function setSyncState(state, label) {
-  const dot = document.getElementById('syncDot');
-  const lbl = document.getElementById('syncLabel');
-  if (dot) dot.className = 'sync-dot ' + state;
-  if (lbl) lbl.textContent = label;
+async function importMatches(btn){
+ const nombre=jornadaNombre.value.trim();
+ const text=jornadaText.value.trim();
+ if(!nombre||!text) return alert('Faltan datos');
+ if(S.jornadas.some(j=>j.nombre===nombre)) return alert('Jornada duplicada');
+
+ let matches=[];
+ try{
+  matches=text.split('\n').map(l=>{
+    const p=l.split(',').map(x=>x.trim());
+    if(p.length!==2) throw new Error(l);
+    return {p1:p[0],p2:p[1]};
+  });
+ }catch(e){return alert('Error en línea: '+e.message)}
+
+ btn.disabled=true;btn.textContent='Guardando...';
+
+ const jornada={id:Date.now()+Math.random(),nombre,matches};
+ S.jornadas.push(jornada);
+
+ const ok=await save();
+ btn.disabled=false;btn.textContent='Importar';
+
+ if(!ok) S.jornadas.pop();
+ else{
+  jornadaNombre.value='';
+  jornadaText.value='';
+  render();
+ }
 }
 
-// ── INIT ────────────────────────────────────────────────
-async function initApp() {
-  document.getElementById('loadingOverlay').classList.remove('hidden');
-  await loadFromDB();
-  document.getElementById('loadingOverlay').classList.add('hidden');
-  populateJugadorSelect();
-  setInterval(async () => {
-    if (S.saving) return;
-    if (!await loadFromDB()) return;
-    populateJugadorSelect();
-    if (S.currentPlayer) renderSlots();
-    if (S.adminLoggedIn) { renderAdminSlots(); renderAdminJornadas(); renderResumen(); }
-  }, POLL_MS);
+async function addSlot(btn){
+ const d=date.value,t=time.value,c=court.value;
+ if(!d||!t||!c) return alert('Faltan datos');
+
+ btn.disabled=true;btn.textContent='Guardando...';
+
+ const slot={id:Date.now()+Math.random(),date:d,time:t,court:c,reservedBy:null,rival:null};
+ S.slots.push(slot);
+
+ const ok=await save();
+ btn.disabled=false;btn.textContent='Añadir hueco';
+
+ if(!ok) S.slots.pop(); else render();
 }
 
-// ── TABS ────────────────────────────────────────────────
-function switchTab(t) {
-  document.querySelectorAll('.tab').forEach((x,i) => x.classList.toggle('active', ['jugador','admin'][i] === t));
-  document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
-  document.getElementById('tab-' + t).classList.add('active');
-}
-function switchSubtab(t) {
-  document.querySelectorAll('.subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','partidos','resumen'][i] === t));
-  document.querySelectorAll('.admin-sub').forEach(x => x.classList.remove('active'));
-  document.getElementById('sub-' + t).classList.add('active');
-  if (t === 'resumen')  renderResumen();
-  if (t === 'huecos')   renderAdminSlots();
-  if (t === 'partidos') renderAdminJornadas();
+async function reserve(id,btn){
+ const s=S.slots.find(x=>x.id===id);
+ if(!s||s.reservedBy) return;
+
+ const name=prompt('Tu nombre');
+ const rival=prompt('Rival');
+ if(!name||!rival) return;
+
+ btn.disabled=true;btn.textContent='Guardando...';
+
+ const backup={...s};
+ s.reservedBy=name;
+ s.rival=rival;
+
+ const ok=await save();
+
+ if(!ok) Object.assign(s,backup);
+ render();
 }
 
-// ── JUGADOR ─────────────────────────────────────────────
-function getAllPlayers() {
-  const s = new Set();
-  S.jornadas.forEach(j => j.matches.forEach(m => { s.add(m.p1); s.add(m.p2); }));
-  return [...s].sort((a,b) => a.localeCompare(b, 'es'));
-}
-function populateJugadorSelect() {
-  const sel = document.getElementById('selJugador'), cur = sel.value;
-  sel.innerHTML = '<option value="">— Selecciona tu nombre —</option>';
-  getAllPlayers().forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; if (p === cur) o.selected = true; sel.appendChild(o); });
-}
-function onSelectJugador() {
-  const jugador = document.getElementById('selJugador').value;
-  const rs = document.getElementById('selRival');
-  rs.innerHTML = ''; rs.disabled = true;
-  if (!jugador) { rs.innerHTML = '<option value="">— Selecciona primero tu nombre —</option>'; return; }
-  const rivals = [...new Set(S.jornadas.flatMap(j => j.matches.filter(m => m.p1 === jugador || m.p2 === jugador).map(m => m.p1 === jugador ? m.p2 : m.p1)))].sort((a,b) => a.localeCompare(b,'es'));
-  if (!rivals.length) { rs.innerHTML = '<option value="">Sin rival asignado</option>'; return; }
-  rs.disabled = false;
-  if (rivals.length === 1) { rs.innerHTML = `<option value="${rivals[0]}">${rivals[0]}</option>`; }
-  else { rs.innerHTML = '<option value="">— Selecciona rival —</option>'; rivals.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; rs.appendChild(o); }); }
-}
-function loginJugador() {
-  const n = document.getElementById('selJugador').value, r = document.getElementById('selRival').value;
-  if (!n) { showToast('Selecciona tu nombre'); return; }
-  if (!r) { showToast('Selecciona tu rival'); return; }
-  if (!S.jornadas.some(j => j.matches.some(m => (m.p1===n&&m.p2===r)||(m.p2===n&&m.p1===r)))) { showToast('Enfrentamiento no registrado'); return; }
-  S.currentPlayer = n; S.currentRival = r;
-  document.getElementById('jugadorLogin').style.display = 'none';
-  document.getElementById('jugadorHuecos').style.display = 'block';
-  document.getElementById('jugadorBienvenida').textContent = 'Hola, ' + n.split(' ')[0];
-  renderSlots();
-}
-function logoutJugador() {
-  S.currentPlayer = null; S.currentRival = null;
-  document.getElementById('jugadorLogin').style.display = 'block';
-  document.getElementById('jugadorHuecos').style.display = 'none';
-  document.getElementById('selJugador').value = '';
-  document.getElementById('selRival').innerHTML = '<option value="">— Selecciona primero tu nombre —</option>';
-  document.getElementById('selRival').disabled = true;
+async function cancel(id,btn){
+ const s=S.slots.find(x=>x.id===id);
+ if(!s) return;
+
+ btn.disabled=true;btn.textContent='Cancelando...';
+
+ const backup={...s};
+ s.reservedBy=null;
+ s.rival=null;
+
+ const ok=await save();
+
+ if(!ok) Object.assign(s,backup);
+ render();
 }
 
-// ── ADMIN ───────────────────────────────────────────────
-function loginAdmin() {
-  if (document.getElementById('inputAdminPass').value !== ADMIN_PASSWORD) { showToast('Contraseña incorrecta'); return; }
-  S.adminLoggedIn = true;
-  document.getElementById('adminLock').style.display = 'none';
-  document.getElementById('adminPanel').style.display = 'block';
-  document.getElementById('newSlotDate').value = new Date().toISOString().split('T')[0];
-  populateJornadaSelect('newSlotJornada'); renderAdminSlots(); renderAdminJornadas();
-}
-function logoutAdmin() {
-  S.adminLoggedIn = false;
-  document.getElementById('adminLock').style.display = 'block';
-  document.getElementById('adminPanel').style.display = 'none';
-  document.getElementById('inputAdminPass').value = '';
-}
+function render(){
+ slots.innerHTML='';
 
-// ── JORNADAS ────────────────────────────────────────────
-async function importMatches() {
-  const nombre = document.getElementById('newJornadaNombre').value.trim();
-  const text   = document.getElementById('importText').value.trim();
-  if (!nombre) { showToast('Pon un nombre a la jornada'); return; }
-  if (!text)   { showToast('Escribe al menos un partido'); return; }
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const matches = [];
-  for (const line of lines) {
-    const parts = line.split(',').map(s => s.trim());
-    if (parts.length < 2 || !parts[0] || !parts[1]) { showToast(`Línea inválida: "${line}"`); return; }
-    matches.push({ p1: parts[0], p2: parts[1] });
+ S.slots.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+
+ S.slots.forEach(s=>{
+  const d=document.createElement('div');
+  d.className='card';
+
+  d.innerHTML=`📅 ${s.date} ⏰ ${s.time} 🎾 ${s.court}`;
+
+  if(s.reservedBy){
+    d.innerHTML+=`<br>✅ ${s.reservedBy} vs ${s.rival}`;
+    const b=document.createElement('button');
+    b.className='btn btn-danger';
+    b.textContent='Cancelar';
+    b.onclick=()=>cancel(s.id,b);
+    d.appendChild(b);
+  }else{
+    const b=document.createElement('button');
+    b.className='btn btn-primary';
+    b.textContent='Reservar';
+    b.onclick=()=>reserve(s.id,b);
+    d.appendChild(b);
   }
-  const btn = document.getElementById('btnImport');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  S.jornadas.push({ id: Date.now().toString(), nombre, matches });
-  const ok = await save();
-  btn.disabled = false; btn.textContent = 'Importar partidos';
-  if (ok) {
-    document.getElementById('newJornadaNombre').value = '';
-    document.getElementById('importText').value = '';
-    populateJornadaSelect('newSlotJornada'); populateJugadorSelect(); renderAdminJornadas();
-    showToast(`✓ "${nombre}" importada (${matches.length} partidos)`);
-  } else { S.jornadas.pop(); }
-}
-async function deleteJornada(id) {
-  if (!confirm('¿Eliminar esta jornada y sus partidos?')) return;
-  const backup = [...S.jornadas];
-  S.jornadas = S.jornadas.filter(j => j.id !== id);
-  const ok = await save();
-  if (ok) { populateJornadaSelect('newSlotJornada'); populateJugadorSelect(); renderAdminJornadas(); showToast('Jornada eliminada'); }
-  else { S.jornadas = backup; renderAdminJornadas(); showToast('Error al eliminar'); }
-}
-function renderAdminJornadas() {
-  const c = document.getElementById('adminJornadaList');
-  if (!S.jornadas.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📋</span>Sin jornadas importadas.</div>'; return; }
-  c.innerHTML = '';
-  S.jornadas.forEach(j => {
-    const div = document.createElement('div'); div.className = 'admin-row'; div.style.cssText = 'flex-direction:column;align-items:flex-start;gap:8px';
-    const hdr = document.createElement('div'); hdr.style.cssText = 'display:flex;justify-content:space-between;width:100%;align-items:center';
-    hdr.innerHTML = `<span style="font-size:14px;font-weight:600">${esc(j.nombre)}</span>`;
-    const btn = document.createElement('button'); btn.className = 'btn btn-danger btn-sm'; btn.textContent = 'Eliminar';
-    btn.onclick = () => deleteJornada(j.id);
-    hdr.appendChild(btn); div.appendChild(hdr);
-    const ml = document.createElement('div');
-    j.matches.forEach(m => { const d = document.createElement('div'); d.style.cssText = 'font-size:11px;color:var(--white-dim);margin-bottom:3px'; d.innerHTML = `🎾 ${esc(m.p1)} <span style="color:var(--clay-light)">vs</span> ${esc(m.p2)}`; ml.appendChild(d); });
-    div.appendChild(ml); c.appendChild(div);
-  });
-}
-function populateJornadaSelect(selId) {
-  const sel = document.getElementById(selId), cur = sel.value;
-  sel.innerHTML = '<option value="">— Selecciona jornada —</option>';
-  S.jornadas.forEach(j => { const o = document.createElement('option'); o.value = j.id; o.textContent = j.nombre; sel.appendChild(o); });
-  if (cur && S.jornadas.find(j => j.id === cur)) sel.value = cur;
+
+  slots.appendChild(d);
+ });
 }
 
-// ── SLOTS ───────────────────────────────────────────────
-async function addSlot() {
-  const jornadaId = document.getElementById('newSlotJornada').value;
-  const date      = document.getElementById('newSlotDate').value;
-  const time      = document.getElementById('newSlotTime').value;
-  const duration  = parseInt(document.getElementById('newSlotDuration').value);
-  const court     = document.getElementById('newSlotCourt').value.trim();
-  if (!jornadaId || !date || !time || !court) { showToast('Rellena todos los campos'); return; }
-  const btn = document.getElementById('btnAddSlot');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  const slot = { id: Date.now().toString(), jornadaId, date, time, duration, court, reservedBy: null, rival: null, reservedAt: null };
-  S.slots.push(slot);
-  S.slots.sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
-  const ok = await save();
-  btn.disabled = false; btn.textContent = '+ Publicar hueco';
-  if (ok) { renderAdminSlots(); showToast('✓ Hueco publicado'); document.getElementById('newSlotTime').value = ''; document.getElementById('newSlotCourt').value = ''; }
-  else { S.slots = S.slots.filter(s => s.id !== slot.id); }
-}
-async function deleteSlot(id) {
-  const s = S.slots.find(x => x.id === id);
-  if (s?.reservedBy && !confirm('Este hueco está reservado. ¿Eliminar igualmente?')) return;
-  const backup = [...S.slots];
-  S.slots = S.slots.filter(x => x.id !== id);
-  const ok = await save();
-  if (ok) { renderAdminSlots(); renderResumen(); showToast('Hueco eliminado'); }
-  else { S.slots = backup; renderAdminSlots(); }
-}
-async function adminCancelSlot(id) {
-  const s = S.slots.find(x => x.id === id);
-  if (!s || !confirm(`¿Liberar la reserva de ${s.reservedBy}?`)) return;
-  const {reservedBy, rival, reservedAt} = s;
-  s.reservedBy = null; s.rival = null; s.reservedAt = null;
-  const ok = await save();
-  if (ok) { renderAdminSlots(); renderResumen(); showToast('Reserva liberada'); }
-  else { s.reservedBy = reservedBy; s.rival = rival; s.reservedAt = reservedAt; renderAdminSlots(); }
-}
-function renderAdminSlots() {
-  if (!S.adminLoggedIn) return;
-  const c = document.getElementById('adminSlotList');
-  if (!S.slots.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>Sin huecos publicados.</div>'; return; }
-  const free = S.slots.filter(s => !s.reservedBy).length;
-  c.innerHTML = `<div class="counter">${free} libre(s) · ${S.slots.length - free} reservado(s)</div>`;
-  S.slots.forEach(slot => {
-    const j = S.jornadas.find(x => x.id === slot.jornadaId), taken = !!slot.reservedBy;
-    const div = document.createElement('div'); div.className = 'admin-row';
-    const info = document.createElement('div'); info.className = 'admin-row-info';
-    info.innerHTML = `<div class="admin-row-name">${formatDate(slot.date)} · ${slot.time}</div><div class="admin-row-detail">${esc(slot.court)} · ${slot.duration||MATCH_DUR_DEFAULT}min · ${esc(j?.nombre||'Sin jornada')}${taken?` · <strong style="color:var(--clay-light)">${esc(slot.reservedBy)} vs ${esc(slot.rival)}</strong>`:''}</div>`;
-    const btns = document.createElement('div'); btns.className = 'admin-btns';
-    if (taken) { const b = document.createElement('button'); b.className = 'btn btn-secondary btn-sm'; b.textContent = 'Liberar'; b.onclick = () => adminCancelSlot(slot.id); btns.appendChild(b); }
-    const del = document.createElement('button'); del.className = 'btn btn-danger btn-sm'; del.textContent = '✕'; del.onclick = () => deleteSlot(slot.id);
-    btns.appendChild(del); div.appendChild(info); div.appendChild(btns); c.appendChild(div);
-  });
-}
-
-// ── RESUMEN ─────────────────────────────────────────────
-function renderResumen() {
-  if (!S.adminLoggedIn) return;
-  const pills = document.getElementById('resumenPills'), content = document.getElementById('resumenContent');
-  if (!S.jornadas.length) { pills.innerHTML = ''; content.innerHTML = '<div class="empty"><span class="empty-icon">📊</span>Sin jornadas registradas.</div>'; return; }
-  if (!S.activeResumenJornada || !S.jornadas.find(j => j.id === S.activeResumenJornada)) S.activeResumenJornada = S.jornadas[S.jornadas.length-1].id;
-  pills.innerHTML = '';
-  S.jornadas.forEach(j => { const b = document.createElement('button'); b.className = 'jpill' + (j.id === S.activeResumenJornada ? ' active' : ''); b.textContent = j.nombre; b.onclick = () => { S.activeResumenJornada = j.id; renderResumen(); }; pills.appendChild(b); });
-  const jornada = S.jornadas.find(j => j.id === S.activeResumenJornada);
-  if (!jornada) { content.innerHTML = ''; return; }
-  const done = jornada.matches.filter(m => S.slots.some(s => s.reservedBy && ((s.reservedBy===m.p1&&s.rival===m.p2)||(s.reservedBy===m.p2&&s.rival===m.p1)))).length;
-  content.innerHTML = `<div class="counter" style="text-align:left;margin-bottom:12px">${done} de ${jornada.matches.length} partidos con hueco reservado</div>`;
-  jornada.matches.forEach(m => {
-    const slot = S.slots.find(s => s.reservedBy && ((s.reservedBy===m.p1&&s.rival===m.p2)||(s.reservedBy===m.p2&&s.rival===m.p1)));
-    const div = document.createElement('div'); div.className = 'summary-row';
-    div.innerHTML = `<div class="summary-status">${slot?'✅':'❌'}</div><div class="summary-info"><div class="summary-players">${esc(m.p1)} <span style="color:var(--clay-light);font-size:10px">vs</span> ${esc(m.p2)}</div>${slot?`<div class="summary-slot">📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}</div>`:`<div class="summary-pending">Sin hueco reservado</div>`}</div>`;
-    content.appendChild(div);
-  });
-}
-
-// ── BOOKING ─────────────────────────────────────────────
-function openBooking(slotId) {
-  const slot = S.slots.find(s => s.id === slotId); if (!slot) return;
-  S.pendingSlotId = slotId;
-  document.getElementById('bookingModalDesc').innerHTML = `<strong>${esc(S.currentPlayer)}</strong> vs <strong>${esc(S.currentRival)}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}`;
-  openModal('bookingModal');
-}
-async function confirmBooking() {
-  const slot = S.slots.find(s => s.id === S.pendingSlotId);
-  if (!slot || slot.reservedBy) { showToast('Este hueco ya no está disponible'); closeModal('bookingModal'); return; }
-  const btn = document.getElementById('btnConfirmBooking');
-  btn.disabled = true; btn.textContent = 'Guardando...';
-  slot.reservedBy = S.currentPlayer; slot.rival = S.currentRival; slot.reservedAt = Date.now();
-  const ok = await save();
-  btn.disabled = false; btn.textContent = 'Confirmar reserva';
-  if (ok) { closeModal('bookingModal'); renderSlots(); showSuccessModal(slot); }
-  else { slot.reservedBy = null; slot.rival = null; slot.reservedAt = null; }
-}
-function showSuccessModal(slot) {
-  document.getElementById('successModalDesc').innerHTML = `<strong>${esc(slot.reservedBy)}</strong> vs <strong>${esc(slot.rival)}</strong><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}`;
-  document.getElementById('calIos').href    = buildIcs(slot);
-  document.getElementById('calGoogle').href = buildGoogle(slot);
-  openModal('successModal');
-}
-function openCancelModal(slotId) {
-  const slot = S.slots.find(s => s.id === slotId); if (!slot) return;
-  const rem = 24*3600000 - (Date.now() - slot.reservedAt);
-  if (rem <= 0) { showToast('Las 24h para cambiar han expirado'); return; }
-  S.pendingSlotId = slotId;
-  const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
-  document.getElementById('cancelModalDesc').innerHTML = `¿Seguro que quieres liberar el hueco del <strong>${formatDate(slot.date)}</strong> a las <strong>${slot.time}</strong>?<br><br>Te quedan <strong>${h}h ${m}min</strong> para cambiarlo.`;
-  openModal('cancelModal');
-}
-async function confirmCancel() {
-  const slot = S.slots.find(s => s.id === S.pendingSlotId); if (!slot) { closeModal('cancelModal'); return; }
-  const btn = document.getElementById('btnConfirmCancel');
-  btn.disabled = true; btn.textContent = 'Liberando...';
-  const {reservedBy, rival, reservedAt} = slot;
-  slot.reservedBy = null; slot.rival = null; slot.reservedAt = null;
-  const ok = await save();
-  btn.disabled = false; btn.textContent = 'Sí, liberar este hueco';
-  if (ok) { closeModal('cancelModal'); renderSlots(); showToast('Hueco liberado'); }
-  else { slot.reservedBy = reservedBy; slot.rival = rival; slot.reservedAt = reservedAt; }
-}
-
-// ── RENDER SLOTS ────────────────────────────────────────
-function renderSlots() {
-  const c = document.getElementById('slotList');
-  const matchupReserved = S.slots.find(s => s.reservedBy && ((s.reservedBy===S.currentPlayer&&s.rival===S.currentRival)||(s.reservedBy===S.currentRival&&s.rival===S.currentPlayer)));
-  const mySlot = S.slots.find(s => s.reservedBy===S.currentPlayer && s.rival===S.currentRival);
-  if (!S.slots.length) { c.innerHTML = '<div class="empty"><span class="empty-icon">📭</span>La organización aún no ha publicado huecos.</div>'; return; }
-  c.innerHTML = '';
-  if (matchupReserved && !mySlot) {
-    const slot = matchupReserved, rem = 24*3600000-(Date.now()-slot.reservedAt);
-    c.innerHTML = `<div class="blocked-notice"><h3>🔒 Partido ya reservado</h3><p>Tu rival <strong>${esc(S.currentRival)}</strong> ya ha elegido hueco:<br><br>📅 ${formatDate(slot.date)} · ⏰ ${slot.time} · 🎾 ${esc(slot.court)}</p></div>${rem>0?`<div class="info-box-yellow">⏱ Todavía dentro del plazo de cambio. Si no estás de acuerdo, habla con tu rival.</div>`:`<div class="info-box">🔒 La reserva ya es inamovible (pasaron las 24h).</div>`}`;
-    return;
-  }
-  S.slots.forEach(slot => {
-    const isMine  = slot.reservedBy===S.currentPlayer && slot.rival===S.currentRival;
-    const isTaken = slot.reservedBy && !isMine;
-    const rem     = isMine ? 24*3600000-(Date.now()-slot.reservedAt) : 0;
-    const canChange = isMine && rem > 0;
-    const h = Math.floor(rem/3600000), m = Math.floor((rem%3600000)/60000);
-    const card = document.createElement('div');
-    card.className = `slot-card ${isMine?'mine':isTaken?'taken':'available'}`;
-    card.innerHTML = `<div class="slot-meta"><div><div class="slot-day">${formatDate(slot.date)}</div><div class="slot-hour">${slot.time} · ${slot.duration||MATCH_DUR_DEFAULT}min</div></div><div class="slot-court-label">🎾 ${esc(slot.court)}</div></div>`;
-    if (isMine) {
-      card.innerHTML += `<span class="badge badge-mine">⭐ Tu reserva</span>${canChange?`<div class="slot-timer">⏱ Puedes cambiarlo ${h}h ${m}min más</div>`:`<div class="slot-timer" style="color:var(--red)">🔒 Reserva fija</div>`}`;
-      const cr = document.createElement('div'); cr.className = 'cal-row';
-      const ai = document.createElement('a'); ai.href='#'; ai.className='btn-cal btn-cal-ios'; ai.textContent='🍎 Apple'; ai.onclick=e=>{e.preventDefault();showSuccessModal(slot);};
-      const ag = document.createElement('a'); ag.href='#'; ag.className='btn-cal btn-cal-google'; ag.textContent='📅 Google'; ag.onclick=e=>{e.preventDefault();showSuccessModal(slot);};
-      cr.appendChild(ai); cr.appendChild(ag); card.appendChild(cr);
-      if (canChange) { const b=document.createElement('button'); b.className='btn btn-danger'; b.style.marginTop='9px'; b.textContent='Cambiar reserva'; b.onclick=()=>openCancelModal(slot.id); card.appendChild(b); }
-    } else if (isTaken) {
-      card.innerHTML += `<span class="badge badge-taken">Ocupado</span>`;
-    } else {
-      card.innerHTML += `<span class="badge badge-free">Disponible</span>`;
-      if (!matchupReserved) { const b=document.createElement('button'); b.className='btn btn-primary'; b.style.marginTop='9px'; b.textContent='Reservar este hueco'; b.onclick=()=>openBooking(slot.id); card.appendChild(b); }
-    }
-    c.appendChild(card);
-  });
-}
-
-// ── CALENDARIO ──────────────────────────────────────────
-function buildIcs(slot) {
-  const dur=slot.duration||MATCH_DUR_DEFAULT,[y,mo,d]=slot.date.split('-').map(Number),[hh,mm]=slot.time.split(':').map(Number);
-  const pad=n=>String(n).padStart(2,'0'),dtS=`${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`,end=new Date(y,mo-1,d,hh,mm+dur);
-  const dtE=`${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
-  const ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Liga Tenis//ES\r\nBEGIN:VEVENT\r\nUID:${slot.id}@ligatenis\r\nDTSTART:${dtS}\r\nDTEND:${dtE}\r\nSUMMARY:🎾 ${slot.reservedBy} vs ${slot.rival}\r\nLOCATION:${slot.court}\r\nEND:VEVENT\r\nEND:VCALENDAR`;
-  return URL.createObjectURL(new Blob([ics],{type:'text/calendar;charset=utf-8'}));
-}
-function buildGoogle(slot) {
-  const dur=slot.duration||MATCH_DUR_DEFAULT,[y,mo,d]=slot.date.split('-').map(Number),[hh,mm]=slot.time.split(':').map(Number);
-  const pad=n=>String(n).padStart(2,'0'),dtS=`${y}${pad(mo)}${pad(d)}T${pad(hh)}${pad(mm)}00`,end=new Date(y,mo-1,d,hh,mm+dur);
-  const dtE=`${end.getFullYear()}${pad(end.getMonth()+1)}${pad(end.getDate())}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(`🎾 ${slot.reservedBy} vs ${slot.rival}`)}&dates=${dtS}/${dtE}&location=${encodeURIComponent(slot.court)}&details=${encodeURIComponent('Partido de liga de tenis')}`;
-}
-
-// ── UTILS ───────────────────────────────────────────────
-function formatDate(ds) { const[y,m,d]=ds.split('-'); return new Date(y,m-1,d).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'}).replace(/^\w/,c=>c.toUpperCase()); }
-function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function openModal(id)  { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-let _tt;
-function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2800); }
-document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
-
-initApp();
+load();
 </script>
 </body>
 </html>
