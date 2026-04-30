@@ -144,6 +144,40 @@
   .subtab.active{background:var(--blue);color:#fff}
   .admin-sub{display:none}.admin-sub.active{display:block}
 
+  /* SPONSORS */
+  .sponsors-bar{background:#fff;padding:10px 20px;border-bottom:1px solid var(--line)}
+  .sponsors-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;text-align:center}
+  .sponsors-row{display:flex;align-items:center;justify-content:center;gap:20px;flex-wrap:wrap}
+  .sponsor-logo{height:36px;width:auto;max-width:90px;object-fit:contain;filter:grayscale(30%);opacity:.85;transition:all .2s}
+  .sponsor-logo:hover{filter:grayscale(0%);opacity:1}
+
+  /* PLAYER SUBTABS */
+  .player-subtabs{display:flex;margin:12px 0 0;background:#fff;border:1px solid var(--line);border-radius:9px;overflow:hidden;box-shadow:var(--shadow)}
+  .player-subtab{flex:1;padding:8px 4px;text-align:center;font-size:10px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);cursor:pointer;border:none;background:none;transition:all .2s}
+  .player-subtab.active{background:var(--blue);color:#fff}
+  .player-sub{display:none}.player-sub.active{display:block}
+
+  /* CLASIFICACION */
+  .clasif-table{width:100%;border-collapse:collapse;margin-top:4px}
+  .clasif-table th{font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--text-dim);padding:8px 6px;text-align:center;border-bottom:2px solid var(--line)}
+  .clasif-table th:first-child{text-align:left;padding-left:10px}
+  .clasif-table td{padding:10px 6px;text-align:center;font-size:13px;border-bottom:1px solid var(--line);background:#fff}
+  .clasif-table td:first-child{text-align:left;padding-left:10px;font-weight:600}
+  .clasif-table tr:last-child td{border-bottom:none}
+  .clasif-table tr.me td{background:rgba(26,111,212,.06)}
+  .clasif-pos{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--line);font-size:11px;font-weight:700;line-height:22px;text-align:center;margin-right:6px}
+  .clasif-pos.gold{background:#FFD700;color:#7a5800}
+  .clasif-pos.silver{background:#C0C0C0;color:#4a4a4a}
+  .clasif-pos.bronze{background:#CD7F32;color:#fff}
+
+  /* RESULTADO CARD */
+  .result-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;box-shadow:var(--shadow)}
+  .result-players{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px;font-weight:600}
+  .result-score{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--blue);letter-spacing:1px;text-align:center;margin:6px 0 2px}
+  .result-detail{font-size:10px;color:var(--text-dim);text-align:center}
+  .result-winner{font-size:10px;color:var(--green);text-align:center;margin-top:4px;font-weight:600}
+  .result-pending{font-size:11px;color:var(--text-dim);font-style:italic;margin-top:4px}
+
   /* SYNC */
   .sync-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);flex-shrink:0}
   .sync-dot.ok{background:#7ee8b8}.sync-dot.err{background:#ff8080}.sync-dot.loading{background:#ffe080;animation:pulse .7s infinite}
@@ -183,6 +217,17 @@
     </div>
   </div>
 
+  <!-- PATROCINADORES -->
+  <div class="sponsors-bar">
+    <div class="sponsors-label">Patrocinadores</div>
+    <div class="sponsors-row">
+      <!-- Sustituye cada src por la URL de tu patrocinador, ej: src="patrocinador1.png" -->
+      <img class="sponsor-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Culinary_fruits_front_view.jpg/320px-Culinary_fruits_front_view.jpg" alt="Patrocinador 1"/>
+      <img class="sponsor-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/PNG_transparency_demonstration_1.png/280px-PNG_transparency_demonstration_1.png" alt="Patrocinador 2"/>
+      <img class="sponsor-logo" src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/Camponotus_flavomarginatus_ant.jpg/320px-Camponotus_flavomarginatus_ant.jpg" alt="Patrocinador 3"/>
+    </div>
+  </div>
+
   <div class="tabs">
     <button class="tab active" onclick="switchTab('jugador')">Jugadores</button>
     <button class="tab" onclick="switchTab('admin')">Organización</button>
@@ -217,8 +262,25 @@
     <div id="jugadorHuecos" style="display:none">
       <div style="height:14px"></div>
       <div class="sec-title" id="jugadorBienvenida">Hola, —</div>
-      <div class="sec-desc">Selecciona el hueco acordado con tu rival. Tienes <strong>24 horas</strong> para cambiarlo.</div>
-      <div id="slotList"></div>
+      <div class="player-subtabs">
+        <button class="player-subtab active" onclick="switchPlayerSubtab('huecos')">Huecos</button>
+        <button class="player-subtab" onclick="switchPlayerSubtab('resultados')">Resultados</button>
+        <button class="player-subtab" onclick="switchPlayerSubtab('clasificacion')">Clasificación</button>
+      </div>
+      <div class="player-sub active" id="psub-huecos">
+        <div class="sec-desc" style="margin-top:8px">Selecciona el hueco acordado con tu rival. Tienes <strong>24 horas</strong> para cambiarlo.</div>
+        <div id="slotList"></div>
+      </div>
+      <div class="player-sub" id="psub-resultados">
+        <div class="sec-desc" style="margin-top:8px">Resultados de los partidos de tu grupo.</div>
+        <div class="jornada-pills" id="playerResultadosPills"></div>
+        <div id="playerResultadosContent"></div>
+      </div>
+      <div class="player-sub" id="psub-clasificacion">
+        <div class="sec-desc" style="margin-top:8px">Clasificación actualizada de tu grupo.</div>
+        <div class="jornada-pills" id="playerClasifPills"></div>
+        <div id="playerClasifContent"></div>
+      </div>
       <button class="btn btn-secondary" style="margin-top:8px" onclick="logoutJugador()">← Cambiar jugador</button>
     </div>
 
@@ -242,6 +304,7 @@
         <button class="subtab active" onclick="switchSubtab('huecos')">Huecos</button>
         <button class="subtab" onclick="switchSubtab('partidos')">Partidos</button>
         <button class="subtab" onclick="switchSubtab('resumen')">Resumen</button>
+        <button class="subtab" onclick="switchSubtab('resultados')">Resultados</button>
       </div>
 
       <!-- SUBTAB: HUECOS -->
@@ -274,6 +337,12 @@
         <div class="sec-title">Importar Partidos</div>
         <div class="sec-desc">Escribe o pega los enfrentamientos de una jornada. Un partido por línea, separado por coma:<br><strong>Jugador 1, Jugador 2</strong></div>
         <div class="fg"><label>Nombre de la jornada</label><input type="text" id="newJornadaNombre" placeholder="Ej: Jornada 3, Cuartos de final..."/></div>
+        <div class="fg"><label>Tipo de fase</label>
+          <select id="newJornadaTipo">
+            <option value="grupos">Fase de grupos (con clasificación)</option>
+            <option value="eliminatoria">Fase eliminatoria (sin clasificación)</option>
+          </select>
+        </div>
         <div class="fg"><label>Partidos</label>
           <textarea id="importText" placeholder="Carlos García, Marta López&#10;Pedro Ruiz, Ana Sánchez&#10;Luis Fernández, Carmen Torres"></textarea>
         </div>
@@ -289,6 +358,14 @@
         <div class="sec-desc">Estado de reservas de cada partido. ✅ = hueco confirmado · ❌ = pendiente.</div>
         <div class="jornada-pills" id="resumenPills"></div>
         <div id="resumenContent"></div>
+      </div>
+
+      <!-- SUBTAB: RESULTADOS -->
+      <div class="admin-sub" id="sub-resultados">
+        <div class="sec-title">Introducir Resultados</div>
+        <div class="sec-desc">Introduce el marcador de los partidos ya jugados. Formato sets: <strong>6-4, 3-6, 7-5</strong></div>
+        <div class="jornada-pills" id="resultadosPills"></div>
+        <div id="resultadosContent"></div>
       </div>
 
       <hr>
@@ -336,6 +413,26 @@
   </div>
 </div>
 
+<!-- Modal resultado -->
+<div class="modal-overlay" id="resultadoModal">
+  <div class="modal">
+    <div class="modal-title">Introducir Resultado</div>
+    <div class="modal-desc" id="resultadoModalDesc"></div>
+    <div class="fg">
+      <label>Ganador del partido</label>
+      <select id="selGanador">
+        <option value="">— Selecciona ganador —</option>
+      </select>
+    </div>
+    <div class="fg">
+      <label>Sets jugados (ej: 6-4, 3-6, 7-5)</label>
+      <input type="text" id="inputSets" placeholder="6-4, 3-6, 7-5"/>
+    </div>
+    <button class="btn btn-primary" id="btnGuardarResultado" onclick="guardarResultado()">Guardar resultado</button>
+    <button class="btn btn-secondary" onclick="closeModal('resultadoModal')">Cancelar</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -354,10 +451,10 @@ const POLL_MS           = 20000;
 
 // ─── ESTADO ───────────────────────────────────────────────────────────────────
 let S = {
-  jornadas: [], slots: [],
+  jornadas: [], slots: [], resultados: {},
   currentPlayer: null, currentRival: null,
   adminLoggedIn: false, pendingSlotId: null,
-  activeResumenJornada: null, saving: false,
+  activeResumenJornada: null, activeResultadosJornada: null, activePlayerResultadosJornada: null, activePlayerClasifJornada: null, saving: false, pendingResultadoMatchKey: null,
 };
 
 // ── SUPABASE ────────────────────────────────────────────
@@ -369,7 +466,7 @@ async function loadFromDB() {
     const rows = await r.json();
     if (!rows.length) throw new Error('no rows');
     const d = rows[0].data;
-    S.jornadas = d.jornadas || []; S.slots = d.slots || [];
+    S.jornadas = d.jornadas || []; S.slots = d.slots || []; S.resultados = d.resultados || {};
     setSyncState('ok', 'Conectado'); return true;
   } catch(e) { setSyncState('err', 'Sin conexión'); return false; }
 }
@@ -378,7 +475,7 @@ async function save() {
   S.saving = true;
   setSyncState('loading', 'Guardando...');
   try {
-    const body = JSON.stringify({ data: { jornadas: S.jornadas, slots: S.slots } });
+    const body = JSON.stringify({ data: { jornadas: S.jornadas, slots: S.slots, resultados: S.resultados || {} } });
     const r = await fetch(SB_ROW, { method: 'PATCH', headers: SB_HEADERS, body });
     if (!r.ok) throw new Error(r.status);
     setSyncState('ok', 'Guardado ✓'); S.saving = false; return true;
@@ -402,8 +499,8 @@ async function initApp() {
     if (S.saving) return;
     if (!await loadFromDB()) return;
     populateJugadorSelect();
-    if (S.currentPlayer) renderSlots();
-    if (S.adminLoggedIn) { renderAdminSlots(); renderAdminJornadas(); renderResumen(); }
+    if (S.currentPlayer) { renderSlots(); renderPlayerResultados(); renderPlayerClasif(); }
+    if (S.adminLoggedIn) { renderAdminSlots(); renderAdminJornadas(); renderResumen(); renderAdminResultados(); }
   }, POLL_MS);
 }
 
@@ -414,12 +511,20 @@ function switchTab(t) {
   document.getElementById('tab-' + t).classList.add('active');
 }
 function switchSubtab(t) {
-  document.querySelectorAll('.subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','partidos','resumen'][i] === t));
+  document.querySelectorAll('.subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','partidos','resumen','resultados'][i] === t));
   document.querySelectorAll('.admin-sub').forEach(x => x.classList.remove('active'));
   document.getElementById('sub-' + t).classList.add('active');
-  if (t === 'resumen')  renderResumen();
-  if (t === 'huecos')   renderAdminSlots();
-  if (t === 'partidos') renderAdminJornadas();
+  if (t === 'resumen')    renderResumen();
+  if (t === 'huecos')     renderAdminSlots();
+  if (t === 'partidos')   renderAdminJornadas();
+  if (t === 'resultados') renderAdminResultados();
+}
+function switchPlayerSubtab(t) {
+  document.querySelectorAll('.player-subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','resultados','clasificacion'][i] === t));
+  document.querySelectorAll('.player-sub').forEach(x => x.classList.remove('active'));
+  document.getElementById('psub-' + t).classList.add('active');
+  if (t === 'resultados')   renderPlayerResultados();
+  if (t === 'clasificacion') renderPlayerClasif();
 }
 
 // ── JUGADOR ─────────────────────────────────────────────
@@ -495,7 +600,8 @@ async function importMatches() {
   }
   const btn = document.getElementById('btnImport');
   btn.disabled = true; btn.textContent = 'Guardando...';
-  S.jornadas.push({ id: Date.now().toString(), nombre, matches });
+  const tipo = document.getElementById('newJornadaTipo').value || 'grupos';
+  S.jornadas.push({ id: Date.now().toString(), nombre, tipo, matches });
   const ok = await save();
   btn.disabled = false; btn.textContent = 'Importar partidos';
   if (ok) {
@@ -716,6 +822,168 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 let _tt;
 function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2800); }
 document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+
+// ── RESULTADOS (ADMIN) ─────────────────────────────────
+function matchKey(p1, p2) { return [p1,p2].sort().join('|||'); }
+
+function renderAdminResultados() {
+  if (!S.adminLoggedIn) return;
+  const pills = document.getElementById('resultadosPills');
+  const content = document.getElementById('resultadosContent');
+  if (!S.jornadas.length) { pills.innerHTML=''; content.innerHTML='<div class="empty"><span class="empty-icon">🎾</span>Sin jornadas registradas.</div>'; return; }
+  if (!S.activeResultadosJornada || !S.jornadas.find(j=>j.id===S.activeResultadosJornada)) S.activeResultadosJornada = S.jornadas[S.jornadas.length-1].id;
+  pills.innerHTML = '';
+  S.jornadas.forEach(j => {
+    const b = document.createElement('button'); b.className='jpill'+(j.id===S.activeResultadosJornada?' active':''); b.textContent=j.nombre;
+    b.onclick=()=>{S.activeResultadosJornada=j.id;renderAdminResultados();}; pills.appendChild(b);
+  });
+  const jornada = S.jornadas.find(j=>j.id===S.activeResultadosJornada);
+  if (!jornada) { content.innerHTML=''; return; }
+  content.innerHTML='';
+  // Only show matches that have a reserved slot
+  jornada.matches.forEach(m => {
+    const slot = S.slots.find(s=>s.reservedBy&&((s.reservedBy===m.p1&&s.rival===m.p2)||(s.reservedBy===m.p2&&s.rival===m.p1)));
+    const key = matchKey(m.p1, m.p2);
+    const res = S.resultados[key];
+    const card = document.createElement('div'); card.className='result-card';
+    if (res) {
+      card.innerHTML=`<div class="result-players"><span>${esc(m.p1)}</span><span style="color:var(--text-dim);font-size:10px">vs</span><span>${esc(m.p2)}</span></div><div class="result-score">${esc(res.sets)}</div><div class="result-winner">🏆 ${esc(res.winner)}</div>`;
+      const editBtn = document.createElement('button'); editBtn.className='btn btn-secondary btn-sm'; editBtn.style.marginTop='8px'; editBtn.textContent='Editar resultado';
+      editBtn.onclick=()=>openResultadoModal(m.p1, m.p2); card.appendChild(editBtn);
+    } else {
+      card.innerHTML=`<div class="result-players"><span>${esc(m.p1)}</span><span style="color:var(--text-dim);font-size:10px">vs</span><span>${esc(m.p2)}</span></div>${slot?'<div class="result-pending">Partido programado — sin resultado aún</div>':'<div class="result-pending">Sin hueco reservado todavía</div>'}`;
+      if (slot) {
+        const addBtn = document.createElement('button'); addBtn.className='btn btn-primary'; addBtn.style.marginTop='8px'; addBtn.textContent='+ Añadir resultado';
+        addBtn.onclick=()=>openResultadoModal(m.p1, m.p2); card.appendChild(addBtn);
+      }
+    }
+    content.appendChild(card);
+  });
+}
+
+function openResultadoModal(p1, p2) {
+  S.pendingResultadoMatchKey = matchKey(p1, p2);
+  const res = S.resultados[S.pendingResultadoMatchKey];
+  document.getElementById('resultadoModalDesc').innerHTML = `<strong>${esc(p1)}</strong> vs <strong>${esc(p2)}</strong>`;
+  const sel = document.getElementById('selGanador');
+  sel.innerHTML = `<option value="">— Selecciona ganador —</option><option value="${p1}"${res?.winner===p1?' selected':''}>${esc(p1)}</option><option value="${p2}"${res?.winner===p2?' selected':''}>${esc(p2)}</option>`;
+  document.getElementById('inputSets').value = res?.sets || '';
+  openModal('resultadoModal');
+}
+
+async function guardarResultado() {
+  const winner = document.getElementById('selGanador').value;
+  const sets   = document.getElementById('inputSets').value.trim();
+  if (!winner) { showToast('Selecciona el ganador'); return; }
+  if (!sets)   { showToast('Introduce el marcador de sets'); return; }
+  // Parse sets to get stats
+  const setParts = sets.split(',').map(s=>s.trim());
+  let setsP1=0, setsP2=0, gamesP1=0, gamesP2=0;
+  const key = S.pendingResultadoMatchKey;
+  const [nameA, nameB] = key.split('|||');
+  for (const sp of setParts) {
+    const m = sp.match(/^(\d+)-(\d+)$/);
+    if (!m) { showToast(`Formato incorrecto: "${sp}" (usa ej: 6-4)`); return; }
+    const ga=parseInt(m[1]), gb=parseInt(m[2]);
+    gamesP1+=ga; gamesP2+=gb;
+    if(ga>gb) setsP1++; else setsP2++;
+  }
+  const btn = document.getElementById('btnGuardarResultado');
+  btn.disabled=true; btn.textContent='Guardando...';
+  if (!S.resultados) S.resultados={};
+  S.resultados[key] = { winner, sets, nameA, nameB, setsA:setsP1, setsB:setsP2, gamesA:gamesP1, gamesB:gamesP2 };
+  const ok = await save();
+  btn.disabled=false; btn.textContent='Guardar resultado';
+  if (ok) { closeModal('resultadoModal'); renderAdminResultados(); showToast('✓ Resultado guardado'); }
+  else { delete S.resultados[key]; }
+}
+
+// ── RESULTADOS (JUGADOR) ────────────────────────────────
+function renderPlayerResultados() {
+  if (!S.currentPlayer) return;
+  const pills = document.getElementById('playerResultadosPills');
+  const content = document.getElementById('playerResultadosContent');
+  // Find jornadas where currentPlayer participates
+  const misJornadas = S.jornadas.filter(j=>j.matches.some(m=>m.p1===S.currentPlayer||m.p2===S.currentPlayer));
+  if (!misJornadas.length) { pills.innerHTML=''; content.innerHTML='<div class="empty"><span class="empty-icon">🎾</span>No tienes partidos registrados.</div>'; return; }
+  if (!S.activePlayerResultadosJornada || !misJornadas.find(j=>j.id===S.activePlayerResultadosJornada)) S.activePlayerResultadosJornada=misJornadas[misJornadas.length-1].id;
+  pills.innerHTML='';
+  misJornadas.forEach(j=>{
+    const b=document.createElement('button'); b.className='jpill'+(j.id===S.activePlayerResultadosJornada?' active':''); b.textContent=j.nombre;
+    b.onclick=()=>{S.activePlayerResultadosJornada=j.id;renderPlayerResultados();}; pills.appendChild(b);
+  });
+  const jornada=misJornadas.find(j=>j.id===S.activePlayerResultadosJornada);
+  if(!jornada){content.innerHTML='';return;}
+  content.innerHTML='';
+  jornada.matches.forEach(m=>{
+    const key=matchKey(m.p1,m.p2);
+    const res=S.resultados?.[key];
+    const card=document.createElement('div'); card.className='result-card';
+    if(res){
+      // Determine scores from player perspective
+      const isA = m.p1===res.nameA;
+      card.innerHTML=`<div class="result-players"><span>${esc(m.p1)}</span><span style="color:var(--text-dim);font-size:10px">vs</span><span>${esc(m.p2)}</span></div><div class="result-score">${esc(res.sets)}</div><div class="result-winner">🏆 ${esc(res.winner)}</div>`;
+    } else {
+      card.innerHTML=`<div class="result-players"><span>${esc(m.p1)}</span><span style="color:var(--text-dim);font-size:10px">vs</span><span>${esc(m.p2)}</span></div><div class="result-pending">Resultado pendiente</div>`;
+    }
+    content.appendChild(card);
+  });
+}
+
+// ── CLASIFICACIÓN ───────────────────────────────────────
+function calcClasif(jornada) {
+  const stats = {};
+  jornada.matches.forEach(m=>{
+    [m.p1,m.p2].forEach(p=>{ if(!stats[p]) stats[p]={pts:0,pg:0,pp:0,sg:0,sp:0,gg:0,gp:0}; });
+    const key=matchKey(m.p1,m.p2);
+    const res=S.resultados?.[key];
+    if(!res) return;
+    const {nameA,nameB,setsA,setsB,gamesA,gamesB,winner}=res;
+    stats[nameA].sg+=setsA; stats[nameA].sp+=setsB; stats[nameA].gg+=gamesA; stats[nameA].gp+=gamesB;
+    stats[nameB].sg+=setsB; stats[nameB].sp+=setsA; stats[nameB].gg+=gamesB; stats[nameB].gp+=gamesA;
+    if(winner===nameA){stats[nameA].pts+=2;stats[nameA].pg++;stats[nameB].pp++;}
+    else{stats[nameB].pts+=2;stats[nameB].pg++;stats[nameA].pp++;}
+  });
+  return Object.entries(stats).map(([name,s])=>({name,...s}))
+    .sort((a,b)=>b.pts-a.pts||b.sg-a.sg||b.gg-a.gg);
+}
+
+function renderClasifTable(sorted, highlightPlayer, containerId) {
+  const c=document.getElementById(containerId); c.innerHTML='';
+  if(!sorted.length){c.innerHTML='<div class="empty"><span class="empty-icon">📊</span>Sin resultados aún.</div>';return;}
+  const table=document.createElement('table'); table.className='clasif-table';
+  table.innerHTML=`<thead><tr><th>Pos</th><th style="text-align:left">Jugador</th><th>Pts</th><th>PG</th><th>PP</th><th>SG</th><th>SP</th><th>JG</th><th>JP</th></tr></thead>`;
+  const tbody=document.createElement('tbody');
+  sorted.forEach((p,i)=>{
+    const tr=document.createElement('tr');
+    if(p.name===highlightPlayer) tr.className='me';
+    const posClass=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    tr.innerHTML=`<td><span class="clasif-pos ${posClass}">${i+1}</span></td><td>${esc(p.name)}</td><td><strong>${p.pts}</strong></td><td>${p.pg}</td><td>${p.pp}</td><td>${p.sg}</td><td>${p.sp}</td><td>${p.gg}</td><td>${p.gp}</td>`;
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody); c.appendChild(table);
+  const legend=document.createElement('div');
+  legend.style.cssText='font-size:10px;color:var(--text-dim);margin-top:8px;line-height:1.6';
+  legend.textContent='Pts=Puntos · PG=Part.Ganados · PP=Part.Perdidos · SG/SP=Sets · JG/JP=Games';
+  c.appendChild(legend);
+}
+
+function renderPlayerClasif() {
+  if(!S.currentPlayer) return;
+  const pills=document.getElementById('playerClasifPills');
+  const content=document.getElementById('playerClasifContent');
+  const misJornadas=S.jornadas.filter(j=>j.tipo!=='eliminatoria'&&j.matches.some(m=>m.p1===S.currentPlayer||m.p2===S.currentPlayer));
+  if(!misJornadas.length){pills.innerHTML='';content.innerHTML='<div class="empty"><span class="empty-icon">📊</span>No hay fase de grupos activa.</div>';return;}
+  if(!S.activePlayerClasifJornada||!misJornadas.find(j=>j.id===S.activePlayerClasifJornada)) S.activePlayerClasifJornada=misJornadas[misJornadas.length-1].id;
+  pills.innerHTML='';
+  misJornadas.forEach(j=>{
+    const b=document.createElement('button'); b.className='jpill'+(j.id===S.activePlayerClasifJornada?' active':''); b.textContent=j.nombre;
+    b.onclick=()=>{S.activePlayerClasifJornada=j.id;renderPlayerClasif();}; pills.appendChild(b);
+  });
+  const jornada=misJornadas.find(j=>j.id===S.activePlayerClasifJornada);
+  if(!jornada){content.innerHTML='';return;}
+  renderClasifTable(calcClasif(jornada), S.currentPlayer, 'playerClasifContent');
+}
 
 initApp();
 </script>
