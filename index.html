@@ -25,7 +25,7 @@
 
   /* LOGO AREA */
   .header-top{display:flex;align-items:center;justify-content:space-between;padding-top:24px;margin-bottom:16px}
-  .club-logo{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
+  .club-logo{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
   .club-logo img{width:100%;height:100%;object-fit:cover}
   .club-logo-placeholder{font-size:28px}
   .header-text{flex:1;padding-left:14px}
@@ -147,7 +147,7 @@
   /* SPONSORS */
   .sponsors-bar{background:#fff;padding:8px 0;border-bottom:1px solid var(--line)}
   .sponsors-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;text-align:center;padding:0 12px}
-  .sponsor-logo-full{width:100%;height:auto;display:block;object-fit:contain;max-height:80px}
+  .sponsor-logo-full{width:100%;height:auto;display:block;object-fit:contain;max-height:120px}
 
   /* PLAYER SUBTABS */
   .player-subtabs{display:flex;margin:12px 0 0;background:#fff;border:1px solid var(--line);border-radius:9px;overflow:hidden;box-shadow:var(--shadow)}
@@ -225,6 +225,7 @@
 
   <div class="tabs">
     <button class="tab active" onclick="switchTab('jugador')">Jugadores</button>
+    <button class="tab" onclick="switchTab('clasificacion')">Clasificación</button>
     <button class="tab" onclick="switchTab('admin')">Organización</button>
   </div>
 
@@ -282,6 +283,15 @@
       <button class="btn btn-secondary" style="margin-top:8px" onclick="logoutJugador()">← Cambiar jugador</button>
     </div>
 
+  </div>
+
+  <!-- ═══════════════ CLASIFICACIÓN PÚBLICA ═══════════════ -->
+  <div class="section" id="tab-clasificacion">
+    <div style="height:14px"></div>
+    <div class="sec-title">Clasificación</div>
+    <div class="sec-desc">Selecciona una liga para ver su clasificación actualizada.</div>
+    <div class="jornada-pills" id="publicClasifPills"></div>
+    <div id="publicClasifContent"><div class="empty"><span class="empty-icon">📊</span>Selecciona una liga para ver la clasificación.</div></div>
   </div>
 
   <!-- ═══════════════ ADMIN ═══════════════ -->
@@ -366,6 +376,10 @@
         <div id="resultadosContent"></div>
       </div>
 
+      <hr>
+      <div class="sec-title" style="color:var(--red)">Zona de peligro</div>
+      <div class="sec-desc">Estas acciones no se pueden deshacer.</div>
+      <button class="btn btn-danger" onclick="resetearBD()">🗑 Resetear toda la base de datos</button>
       <hr>
       <button class="btn btn-secondary" onclick="logoutAdmin()">Cerrar sesión admin</button>
     </div>
@@ -504,9 +518,10 @@ async function initApp() {
 
 // ── TABS ────────────────────────────────────────────────
 function switchTab(t) {
-  document.querySelectorAll('.tab').forEach((x,i) => x.classList.toggle('active', ['jugador','admin'][i] === t));
+  document.querySelectorAll('.tab').forEach((x,i) => x.classList.toggle('active', ['jugador','clasificacion','admin'][i] === t));
   document.querySelectorAll('.section').forEach(x => x.classList.remove('active'));
   document.getElementById('tab-' + t).classList.add('active');
+  if (t === 'clasificacion') renderPublicClasif();
 }
 function switchSubtab(t) {
   document.querySelectorAll('.subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','partidos','resumen','resultados'][i] === t));
@@ -611,11 +626,20 @@ async function importMatches() {
 }
 async function deleteJornada(id) {
   if (!confirm('¿Eliminar esta jornada y sus partidos?')) return;
-  const backup = [...S.jornadas];
+  const backupJornadas = [...S.jornadas];
+  const backupResultados = {...S.resultados};
+  const jornada = S.jornadas.find(j => j.id === id);
+  // Remove resultados for all matches in this jornada
+  if (jornada) {
+    jornada.matches.forEach(m => {
+      const key = matchKey(m.p1, m.p2);
+      delete S.resultados[key];
+    });
+  }
   S.jornadas = S.jornadas.filter(j => j.id !== id);
   const ok = await save();
   if (ok) { populateJornadaSelect('newSlotJornada'); populateJugadorSelect(); renderAdminJornadas(); showToast('Jornada eliminada'); }
-  else { S.jornadas = backup; renderAdminJornadas(); showToast('Error al eliminar'); }
+  else { S.jornadas = backupJornadas; S.resultados = backupResultados; renderAdminJornadas(); showToast('Error al eliminar'); }
 }
 function renderAdminJornadas() {
   const c = document.getElementById('adminJornadaList');
@@ -1016,6 +1040,45 @@ function renderPlayerClasif() {
     b.onclick=()=>{S.activePlayerClasifJornada=liga;renderPlayerClasif();}; pills.appendChild(b);
   });
   renderClasifTable(calcClasifLiga(S.activePlayerClasifJornada), S.currentPlayer, 'playerClasifContent');
+}
+
+// ── RESET BASE DE DATOS ─────────────────────────────────
+async function resetearBD() {
+  if (!confirm('⚠️ ¿Seguro que quieres borrar TODOS los datos? Jornadas, huecos, reservas y resultados. Esta acción no se puede deshacer.')) return;
+  if (!confirm('Segunda confirmación: ¿borrar absolutamente todo?')) return;
+  const backup = { jornadas: [...S.jornadas], slots: [...S.slots], resultados: {...S.resultados} };
+  S.jornadas = []; S.slots = []; S.resultados = {};
+  const ok = await save();
+  if (ok) {
+    populateJugadorSelect(); renderAdminSlots(); renderAdminJornadas(); renderResumen(); renderAdminResultados();
+    showToast('✓ Base de datos reseteada');
+  } else {
+    S.jornadas = backup.jornadas; S.slots = backup.slots; S.resultados = backup.resultados;
+    showToast('Error al resetear');
+  }
+}
+
+// ── CLASIFICACIÓN PÚBLICA ────────────────────────────────
+let publicClasifLiga = null;
+function renderPublicClasif() {
+  const pills = document.getElementById('publicClasifPills');
+  const content = document.getElementById('publicClasifContent');
+  const ligas = getAllLigas();
+  if (!ligas.length) {
+    pills.innerHTML = '';
+    content.innerHTML = '<div class="empty"><span class="empty-icon">📊</span>Sin clasificaciones disponibles aún.</div>';
+    return;
+  }
+  if (!publicClasifLiga || !ligas.includes(publicClasifLiga)) publicClasifLiga = ligas[0];
+  pills.innerHTML = '';
+  ligas.forEach(liga => {
+    const b = document.createElement('button');
+    b.className = 'jpill' + (liga === publicClasifLiga ? ' active' : '');
+    b.textContent = 'Liga ' + liga;
+    b.onclick = () => { publicClasifLiga = liga; renderPublicClasif(); };
+    pills.appendChild(b);
+  });
+  renderClasifTable(calcClasifLiga(publicClasifLiga), null, 'publicClasifContent');
 }
 
 initApp();
