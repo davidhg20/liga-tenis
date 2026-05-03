@@ -25,8 +25,8 @@
 
   /* LOGO AREA */
   .header-top{display:flex;align-items:center;justify-content:space-between;padding-top:24px;margin-bottom:16px}
-  .club-logo{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0}
-  .club-logo img{width:100%;height:100%;object-fit:cover}
+  .club-logo{width:96px;height:96px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .club-logo img{width:100%;height:100%;object-fit:contain}
   .club-logo-placeholder{font-size:28px}
   .header-text{flex:1;padding-left:14px}
   .header-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-bottom:3px}
@@ -147,7 +147,7 @@
   /* SPONSORS */
   .sponsors-bar{background:#fff;padding:8px 0;border-bottom:1px solid var(--line)}
   .sponsors-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;text-align:center;padding:0 12px}
-  .sponsor-logo-full{width:100%;height:auto;display:block;object-fit:contain;max-height:120px}
+  .sponsor-logo-full{width:100%;height:auto;display:block;object-fit:contain;max-height:160px}
 
   /* PLAYER SUBTABS */
   .player-subtabs{display:flex;margin:12px 0 0;background:#fff;border:1px solid var(--line);border-radius:9px;overflow:hidden;box-shadow:var(--shadow)}
@@ -261,7 +261,6 @@
       <div class="player-subtabs">
         <button class="player-subtab active" onclick="switchPlayerSubtab('huecos')">Huecos</button>
         <button class="player-subtab" onclick="switchPlayerSubtab('resultados')">Resultados</button>
-        <button class="player-subtab" onclick="switchPlayerSubtab('clasificacion')">Clasificación</button>
       </div>
       <div class="player-sub active" id="psub-huecos">
         <div class="sec-desc" style="margin-top:8px">Selecciona el hueco acordado con tu rival. Tienes <strong>24 horas</strong> para cambiarlo.</div>
@@ -275,11 +274,7 @@
         <div class="jornada-pills" id="playerResultadosPills"></div>
         <div id="playerResultadosContent"></div>
       </div>
-      <div class="player-sub" id="psub-clasificacion">
-        <div class="sec-desc" style="margin-top:8px">Clasificación actualizada de tu grupo.</div>
-        <div class="jornada-pills" id="playerClasifPills"></div>
-        <div id="playerClasifContent"></div>
-      </div>
+
       <button class="btn btn-secondary" style="margin-top:8px" onclick="logoutJugador()">← Cambiar jugador</button>
     </div>
 
@@ -533,7 +528,7 @@ function switchSubtab(t) {
   if (t === 'resultados') renderAdminResultados();
 }
 function switchPlayerSubtab(t) {
-  document.querySelectorAll('.player-subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','resultados','clasificacion'][i] === t));
+  document.querySelectorAll('.player-subtab').forEach((x,i) => x.classList.toggle('active', ['huecos','resultados'][i] === t));
   document.querySelectorAll('.player-sub').forEach(x => x.classList.remove('active'));
   document.getElementById('psub-' + t).classList.add('active');
   if (t === 'resultados')   renderPlayerResultados();
@@ -1050,7 +1045,10 @@ async function resetearBD() {
   S.jornadas = []; S.slots = []; S.resultados = {};
   const ok = await save();
   if (ok) {
-    populateJugadorSelect(); renderAdminSlots(); renderAdminJornadas(); renderResumen(); renderAdminResultados();
+    populateJornadaSelect('newSlotJornada');
+    populateJugadorSelect();
+    renderAdminSlots(); renderAdminJornadas(); renderResumen(); renderAdminResultados();
+    renderPublicClasif();
     showToast('✓ Base de datos reseteada');
   } else {
     S.jornadas = backup.jornadas; S.slots = backup.slots; S.resultados = backup.resultados;
